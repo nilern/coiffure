@@ -5,8 +5,6 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.source.Source;
 
-import clojure.lang.LispReader;
-
 import java.io.PushbackReader;
 import java.util.List;
 
@@ -27,8 +25,9 @@ public final class Language extends TruffleLanguage<Context> {
         Source source = request.getSource();
         List<String> argNames = request.getArgumentNames();
 
+        // TODO: Read all forms:
         PushbackReader reader = new PushbackReader(source.getReader());
-        Object form = LispReader.read(reader, null);
+        Object form = Parser.read(reader);
 
         Expr expr = Analyzer.analyze(form);
 
