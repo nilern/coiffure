@@ -13,6 +13,9 @@ repositories {
 }
 
 dependencies {
+    api("org.graalvm.truffle:truffle-api:21.0.0.2")
+    api("org.clojure:clojure:1.10.3")
+    
     testImplementation(kotlin("test-junit"))
 }
 
