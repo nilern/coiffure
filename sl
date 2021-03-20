@@ -43,7 +43,7 @@
 # If you update this number make sure the graalvm.version value in ./pom.xml matches
 VERSION="21.0.0.2"
 
-MAIN_CLASS="com.oracle.truffle.sl.launcher.SLMain"
+MAIN_CLASS="com.deepbeginnings.coiffure.launcher.CoiffureMain"
 SCRIPT_HOME="$(cd "$(dirname "$0")" && pwd -P)"
 
 function extractGraalVMVersion() {
