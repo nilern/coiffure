@@ -141,7 +141,7 @@ static Object invokeMatchingMethod(String methodName, List methods, Object targe
 			Class[] params = m.getParameterTypes();
 			if(isCongruent(params, args))
 				{
-				if(foundm == null || Compiler.subsumes(params, foundm.getParameterTypes()))
+				if(foundm == null /* HACK(nilern): Comment out: || Compiler.subsumes(params, foundm.getParameterTypes())*/)
 					{
 					foundm = m;
 					boxedArgs = boxArgs(params, args);

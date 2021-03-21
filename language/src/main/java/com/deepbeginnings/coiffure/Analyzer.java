@@ -5,7 +5,7 @@ final class Analyzer {
         if (form instanceof Long) {
             return Const.create(form);
         } else {
-            throw new RuntimeException("TODO: analyze");
+            throw new RuntimeException("TODO: analyze " + form);
         }
     }
 }
