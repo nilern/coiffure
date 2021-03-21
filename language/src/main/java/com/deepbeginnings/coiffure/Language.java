@@ -5,7 +5,6 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.source.Source;
 
-import java.io.PushbackReader;
 import java.util.List;
 
 @TruffleLanguage.Registration(id = Language.ID, name = "Clojure", implementationName = "Coiffure",
@@ -25,7 +24,7 @@ public final class Language extends TruffleLanguage<Context> {
         Source source = request.getSource();
         List<String> argNames = request.getArgumentNames(); // FIXME: ignored
 
-        PushbackReader reader = new PushbackReader(source.getReader());
+        PeekableReader reader = new PeekableReader(source.getReader());
         
         Expr expr = null;
         while (true) {

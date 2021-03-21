@@ -4,20 +4,19 @@ import clojure.lang.IPersistentCollection;
 import clojure.lang.PersistentList;
 
 import java.io.IOException;
-import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.ListIterator;
 
 final class Parser {
     public static final Object EOF = new Object();
 
-    public static Object read(PushbackReader input) throws IOException { return new Parser(input).read(); }
+    public static Object read(PeekableReader input) throws IOException { return new Parser(input).read(); }
 
-    public static Object tryRead(PushbackReader input) throws IOException { return new Parser(input).tryRead(); }
+    public static Object tryRead(PeekableReader input) throws IOException { return new Parser(input).tryRead(); }
 
-    private final PushbackReader input;
+    private final PeekableReader input;
 
-    private Parser(PushbackReader input) { this.input = input; }
+    private Parser(PeekableReader input) { this.input = input; }
 
     private Object read() throws IOException {
         final Object form = tryRead();
@@ -29,27 +28,22 @@ final class Parser {
     }
 
     private Object tryRead() throws IOException {
-        int c;
+        while (Character.isWhitespace(input.peek())) { input.read(); }
 
-        do {
-            c = input.read();
-            if (c == -1) { return EOF; }
-        } while (Character.isWhitespace(c));
+        switch (input.peek()) {
+        case -1: return EOF;
 
-        switch (c) {
         case '(': return readList();
+
         default:
-            if (Character.isDigit(c)) {
-                long n = Character.digit(c, 10);
-                c = input.read();
-                while (Character.isDigit(c)) {
-                    n = 10 * n + Character.digit(c, 10);
-                    c = input.read();
+            if (Character.isDigit(input.peek())) {
+                long n = 0;
+                while (Character.isDigit(input.peek())) {
+                    n = 10 * n + Character.digit(input.read(), 10);
                 }
-                if (c != -1) { input.unread(c); }
                 return n;
             } else {
-                throw new IOException("TODO: " + c);
+                throw new IOException("TODO: parser lookahead '" + (char) input.peek() + "'");
             }
         }
     }
@@ -57,10 +51,9 @@ final class Parser {
     private IPersistentCollection readList() throws IOException {
         ArrayList<Object> forms = new ArrayList<>();
 
-        for (int c = input.read(); c != ')'; c = input.read()) {
-            if (c != -1) { input.unread(c); }
-            forms.add(read());
-        }
+        input.read(); // discard '('
+        while (input.peek() != ')') { forms.add(read()); }
+        input.read(); // discard ')'
 
         IPersistentCollection coll = PersistentList.EMPTY;
         for (final ListIterator<Object> formsIt = forms.listIterator(forms.size()); formsIt.hasPrevious(); ) {
