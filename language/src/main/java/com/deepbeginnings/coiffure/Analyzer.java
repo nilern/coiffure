@@ -29,12 +29,10 @@ final class Analyzer {
         if (args != null) {
             Object cond = args.first();
 
-            args = args.next();
-            if (args != null) {
+            if ((args = args.next()) != null) {
                 Object conseq = args.first();
 
-                args = args.next();
-                if (args != null) {
+                if ((args = args.next()) != null) {
                     Object alt = args.first();
 
                     if (args.next() == null) {
