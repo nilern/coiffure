@@ -29,7 +29,7 @@ final class Parser {
     }
 
     private Object tryRead() throws IOException {
-        while (Character.isWhitespace(input.peek())) { input.read(); }
+        skipWhitespace();
 
         switch (input.peek()) {
         case -1: return EOF;
@@ -41,6 +41,10 @@ final class Parser {
 
         default: return Symbol.intern(readIdentifier());
         }
+    }
+
+    private void skipWhitespace() throws IOException {
+        while (Character.isWhitespace(input.peek())) { input.read(); }
     }
 
     private long readInt() throws IOException {
@@ -80,8 +84,16 @@ final class Parser {
         ArrayList<Object> forms = new ArrayList<>();
 
         input.read(); // discard '('
-        while (input.peek() != ')') { forms.add(read()); }
-        input.read(); // discard ')'
+        while (true) {
+            skipWhitespace();
+            
+            if (input.peek() == ')') {
+                input.read(); // discard ')'
+                break;
+            } else {
+                forms.add(read());
+            }
+        }
 
         IPersistentCollection coll = PersistentList.EMPTY;
         for (final ListIterator<Object> formsIt = forms.listIterator(forms.size()); formsIt.hasPrevious(); ) {
