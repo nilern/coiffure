@@ -4,7 +4,7 @@ import com.oracle.truffle.api.TruffleFile;
 
 import java.nio.charset.Charset;
 
-public final class FileTypeDetector implements TruffleFile.FileTypeDetector {
+final class FileTypeDetector implements TruffleFile.FileTypeDetector {
     @Override
     public String findMimeType(TruffleFile file) {
         String name = file.getName();

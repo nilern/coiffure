@@ -8,7 +8,7 @@ import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.ListIterator;
 
-class Parser {
+final class Parser {
     private static final int EOF = -1;
 
     public static Object read(PushbackReader input) throws IOException {
