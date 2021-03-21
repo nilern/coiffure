@@ -36,12 +36,12 @@ final class Analyzer {
                     final Object alt = args.first();
 
                     if (args.next() == null) {
-                        return new If(Analyzer.analyze(cond), Analyzer.analyze(conseq), Analyzer.analyze(alt));
+                        return new If(analyze(cond), analyze(conseq), analyze(alt));
                     } else {
                         throw new RuntimeException("Too many arguments to if");
                     }
                 } else {
-                    return new If(Analyzer.analyze(cond), Analyzer.analyze(conseq));
+                    return new If(analyze(cond), analyze(conseq), new Const(null));
                 }
             }
         }

@@ -11,8 +11,6 @@ public class If extends Expr {
     @Node.Child
     private Expr alt;
 
-    public If(Expr cond, Expr conseq) { this(cond, conseq, null); }
-
     public If(Expr cond, Expr conseq, Expr alt) {
         this.cond = cond;
         this.conseq = conseq;
@@ -22,12 +20,11 @@ public class If extends Expr {
     @Override
     public Object eval(VirtualFrame frame) {
         Object condv = cond.eval(frame);
+
         if (condv != null && condv != Boolean.FALSE) {
             return conseq.eval(frame);
-        } else if (alt != null) {
+        } else  {
             return alt.eval(frame);
-        } else {
-            return null;
         }
     }
 }
