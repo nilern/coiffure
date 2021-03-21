@@ -11,7 +11,7 @@ import java.util.List;
 @TruffleLanguage.Registration(id = Language.ID, name = "Clojure", implementationName = "Coiffure",
         defaultMimeType = Language.MIME_TYPE, characterMimeTypes = Language.MIME_TYPE,
         contextPolicy = TruffleLanguage.ContextPolicy.EXCLUSIVE, fileTypeDetectors = FileTypeDetector.class)
-final class Language extends TruffleLanguage<Context> {
+public final class Language extends TruffleLanguage<Context> {
     public static final String ID = "coiffure";
     public static final String MIME_TYPE = "application/clojure";
 
