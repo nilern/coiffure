@@ -27,23 +27,25 @@ final class Analyzer {
 
     private static Expr analyzeIf(ISeq args) {
         if (args != null) {
-            Object cond = args.first();
+            final Object cond = args.first();
 
             if ((args = args.next()) != null) {
-                Object conseq = args.first();
+                final Object conseq = args.first();
 
                 if ((args = args.next()) != null) {
-                    Object alt = args.first();
+                    final Object alt = args.first();
 
                     if (args.next() == null) {
                         return new If(Analyzer.analyze(cond), Analyzer.analyze(conseq), Analyzer.analyze(alt));
                     } else {
-                        throw new RuntimeException("Too few arguments to if");
+                        throw new RuntimeException("Too many arguments to if");
                     }
+                } else {
+                    return new If(Analyzer.analyze(cond), Analyzer.analyze(conseq));
                 }
             }
         }
 
-        throw new RuntimeException("Too many arguments to if");
+        throw new RuntimeException("Too few arguments to if");
     }
 }
