@@ -1,3 +1,12 @@
+# Coiffure
+
+## Dependency Legalities
+
+The build scripts and Maven config came from the Truffle
+[SimpleLanguage example](https://github.com/graalvm/simplelanguage), which is licensed under the UPL(, which is repeated
+in most of the relevant files but here it is):
+
+```
 Copyright (c) 2012, 2019 Oracle and/or its affiliates. All rights reserved.
 
 The Universal Permissive License (UPL), Version 1.0
@@ -35,3 +44,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
