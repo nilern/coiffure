@@ -8,9 +8,7 @@ final class Analyzer {
     private static final Symbol IF = Symbol.intern("if");
 
     public static Expr analyze(Object form) {
-        if (form instanceof Long) {
-            return new Const(form);
-        } else if (form instanceof ISeq) {
+        if (form instanceof ISeq) {
             ISeq coll = (ISeq) form;
 
             if (Util.equiv(coll.first(), IF)) {
@@ -18,10 +16,13 @@ final class Analyzer {
             } else {
                 throw new RuntimeException("TODO");
             }
+        } else if (form == null
+                || form instanceof Boolean
+                || form instanceof Long) {
+            return new Const(form);
         } else {
             throw new RuntimeException("TODO: analyze " + form);
         }
-
     }
 
     private static Expr analyzeIf(ISeq args) {

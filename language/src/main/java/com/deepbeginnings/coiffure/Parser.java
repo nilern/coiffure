@@ -39,7 +39,7 @@ final class Parser {
 
         case '(': return readList();
 
-        default: return Symbol.intern(readIdentifier());
+        default: return readAtom();
         }
     }
 
@@ -102,5 +102,16 @@ final class Parser {
             coll = coll.cons(formsIt.previous());
         }
         return coll;
+    }
+
+    private Object readAtom() throws IOException {
+        final String name = readIdentifier();
+
+        switch (name) {
+        case "nil": return null;
+        case "true": return Boolean.TRUE;
+        case "false": return Boolean.FALSE;
+        default: return Symbol.intern(name);
+        }
     }
 }
