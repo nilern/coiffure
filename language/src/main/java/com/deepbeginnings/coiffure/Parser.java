@@ -33,18 +33,12 @@ final class Parser {
         switch (input.peek()) {
         case -1: return EOF;
 
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+            return readInt();
+
         case '(': return readList();
 
-        default:
-            if (Character.isDigit(input.peek())) {
-                long n = 0;
-                while (Character.isDigit(input.peek())) {
-                    n = 10 * n + Character.digit(input.read(), 10);
-                }
-                return n;
-            } else {
-                throw new IOException("TODO: parser lookahead '" + (char) input.peek() + "'");
-            }
+        default: throw new IOException("TODO: parser lookahead '" + (char) input.peek() + "'");
         }
     }
 
@@ -60,5 +54,18 @@ final class Parser {
             coll = coll.cons(formsIt.previous());
         }
         return coll;
+    }
+
+    private long readInt() throws IOException {
+        long n = 0;
+        loop: while (true) {
+            switch (input.peek()) {
+            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+                n = 10 * n + Character.digit(input.read(), 10);
+                break;
+            default: break loop;
+            }
+        }
+        return n;
     }
 }
