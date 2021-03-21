@@ -64,9 +64,9 @@ final class Parser {
     private String readIdentifier() throws IOException {
         if (isSymbolStart(input.peek())) {
             StringBuilder cs = new StringBuilder();
-            cs.append(input.read());
+            cs.append((char) input.read());
 
-            while (isSymbolPart(input.peek())) { cs.append(input.read()); }
+            while (isSymbolPart(input.peek())) { cs.append((char) input.read()); }
 
             return cs.toString();
         } else {
@@ -74,11 +74,13 @@ final class Parser {
         }
     }
 
-    private static boolean isSymbolStart(int c) {
-        return c != -1 && !Character.isDigit(c) && !Character.isWhitespace(c);
-    }
+    private static boolean isSymbolStart(int c) { return isSymbolPart(c) && !Character.isDigit(c); }
 
-    private static boolean isSymbolPart(int c) { return c != -1 && !Character.isWhitespace(c); }
+    private static boolean isSymbolPart(int c) {
+        return c != -1
+                && !Character.isWhitespace(c)
+                && "()".indexOf(c) == -1;
+    }
 
     private IPersistentCollection readList() throws IOException {
         ArrayList<Object> forms = new ArrayList<>();
@@ -86,7 +88,7 @@ final class Parser {
         input.read(); // discard '('
         while (true) {
             skipWhitespace();
-            
+
             if (input.peek() == ')') {
                 input.read(); // discard ')'
                 break;
