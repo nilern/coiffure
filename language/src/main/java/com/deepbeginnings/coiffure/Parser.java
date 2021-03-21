@@ -9,22 +9,31 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 
 final class Parser {
-    private static final int EOF = -1;
+    public static final Object EOF = new Object();
 
-    public static Object read(PushbackReader input) throws IOException {
-        return new Parser(input).read();
-    }
+    public static Object read(PushbackReader input) throws IOException { return new Parser(input).read(); }
+
+    public static Object tryRead(PushbackReader input) throws IOException { return new Parser(input).tryRead(); }
 
     private final PushbackReader input;
 
     private Parser(PushbackReader input) { this.input = input; }
 
     private Object read() throws IOException {
+        final Object form = tryRead();
+        if (form != EOF) {
+            return form;
+        } else {
+            throw new IOException("EOF while reading");
+        }
+    }
+
+    private Object tryRead() throws IOException {
         int c;
 
         do {
             c = input.read();
-            if (c == EOF) { throw new IOException("EOF while reading"); }
+            if (c == -1) { return EOF; }
         } while (Character.isWhitespace(c));
 
         switch (c) {
@@ -37,10 +46,10 @@ final class Parser {
                     n = 10 * n + Character.digit(c, 10);
                     c = input.read();
                 }
-                input.unread(c);
-                return Long.valueOf(n);
+                if (c != -1) { input.unread(c); }
+                return n;
             } else {
-                throw new IOException("TODO");
+                throw new IOException("TODO: " + c);
             }
         }
     }
@@ -49,15 +58,14 @@ final class Parser {
         ArrayList<Object> forms = new ArrayList<>();
 
         for (int c = input.read(); c != ')'; c = input.read()) {
-            input.unread(c);
+            if (c != -1) { input.unread(c); }
             forms.add(read());
         }
 
         IPersistentCollection coll = PersistentList.EMPTY;
-        for (final ListIterator<Object> formsIt = forms.listIterator(forms.size());
-             formsIt.hasPrevious();
-             coll = coll.cons(formsIt.previous())
-        ) {}
+        for (final ListIterator<Object> formsIt = forms.listIterator(forms.size()); formsIt.hasPrevious(); ) {
+            coll = coll.cons(formsIt.previous());
+        }
         return coll;
     }
 }

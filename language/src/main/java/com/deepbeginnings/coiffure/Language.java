@@ -23,14 +23,18 @@ public final class Language extends TruffleLanguage<Context> {
     @Override
     protected CallTarget parse(ParsingRequest request) throws Exception {
         Source source = request.getSource();
-        List<String> argNames = request.getArgumentNames();
+        List<String> argNames = request.getArgumentNames(); // FIXME: ignored
 
-        // TODO: Read all forms:
         PushbackReader reader = new PushbackReader(source.getReader());
-        Object form = Parser.read(reader);
+        
+        Expr expr = null;
+        while (true) {
+            Object form = Parser.tryRead(reader);
+            if (form == Parser.EOF) { break; }
+            expr = Analyzer.analyze(form);
+        }
 
-        Expr expr = Analyzer.analyze(form);
-
+        // FIXME: Make a CallTarget that runs all forms:
         return Truffle.getRuntime().createCallTarget(new RootNode(this, expr));
     }
 }
