@@ -8,5 +8,5 @@ final class Const extends Expr {
     public Const(Object value) { this.value = value; }
 
     @Override
-    public Object eval(VirtualFrame frame) { return this.value; }
+    public Object execute(VirtualFrame frame) { return this.value; }
 }

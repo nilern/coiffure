@@ -3,6 +3,7 @@ package com.deepbeginnings.coiffure;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.source.Source;
 
 import java.util.List;
@@ -27,13 +28,14 @@ public final class Language extends TruffleLanguage<Context> {
         PeekableReader reader = new PeekableReader(source.getReader());
         
         Expr expr = null;
+        FrameDescriptor locals = new FrameDescriptor();
         while (true) {
             Object form = Parser.tryRead(reader);
             if (form == Parser.EOF) { break; }
-            expr = Analyzer.analyze(form);
+            expr = Analyzer.analyze(locals, form);
         }
 
         // FIXME: Make a CallTarget that runs all forms:
-        return Truffle.getRuntime().createCallTarget(new RootNode(this, expr));
+        return Truffle.getRuntime().createCallTarget(new RootNode(this, locals, expr));
     }
 }

@@ -18,13 +18,13 @@ public class If extends Expr {
     }
 
     @Override
-    public Object eval(VirtualFrame frame) {
-        Object condv = cond.eval(frame);
+    public Object execute(VirtualFrame frame) {
+        Object condv = cond.execute(frame);
 
         if (condv != null && condv != Boolean.FALSE) {
-            return conseq.eval(frame);
+            return conseq.execute(frame);
         } else  {
-            return alt.eval(frame);
+            return alt.execute(frame);
         }
     }
 }

@@ -15,8 +15,8 @@ final class Do extends Expr {
     }
     
     @Override
-    public Object eval(VirtualFrame frame) {
-        for (Expr stmt : stmts) { stmt.eval(frame); }
-        return expr.eval(frame);
+    public Object execute(VirtualFrame frame) {
+        for (Expr stmt : stmts) { stmt.execute(frame); }
+        return expr.execute(frame);
     }
 }
