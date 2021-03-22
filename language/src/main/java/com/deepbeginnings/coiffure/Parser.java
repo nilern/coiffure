@@ -1,8 +1,6 @@
 package com.deepbeginnings.coiffure;
 
-import clojure.lang.IPersistentCollection;
-import clojure.lang.PersistentList;
-import clojure.lang.Symbol;
+import clojure.lang.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +36,7 @@ final class Parser {
             return readInt();
 
         case '(': return readList();
+        case '[': return readVector();
 
         default: return readAtom();
         }
@@ -102,6 +101,24 @@ final class Parser {
             coll = coll.cons(formsIt.previous());
         }
         return coll;
+    }
+
+    private IPersistentCollection readVector() throws IOException {
+        ITransientCollection coll = PersistentVector.EMPTY.asTransient();
+
+        input.read(); // discard '['
+        while (true) {
+            skipWhitespace();
+
+            if (input.peek() == ']') {
+                input.read(); // discard ']'
+                break;
+            } else {
+                coll = coll.conj(read());
+            }
+        }
+
+        return coll.persistent();
     }
 
     private Object readAtom() throws IOException {
