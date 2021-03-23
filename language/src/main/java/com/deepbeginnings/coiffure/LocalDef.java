@@ -9,7 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 @NodeField(name = "slot", type = FrameSlot.class)
 @NodeChild(value = "expr", type = Expr.class)
-abstract class Let extends Expr {
+abstract class LocalDef extends Expr {
     protected abstract FrameSlot getSlot();
 
     @Specialization

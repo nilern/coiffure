@@ -100,7 +100,7 @@ final class Analyzer {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
                 final IPersistentVector bindings = (IPersistentVector) bindingsForm;
-                final ArrayList<Let> defs = new ArrayList<>();
+                final ArrayList<LocalDef> defs = new ArrayList<>();
                 
                 for (int i = 0; i < bindings.count(); ++i) {
                     final Object binder = bindings.nth(i);
@@ -109,7 +109,7 @@ final class Analyzer {
                         if (i < bindings.count()) {
                             final Expr expr = analyze(locals, bindings.nth(i));
                             locals = locals.push((Symbol) binder);
-                            defs.add(LetNodeGen.create(expr, locals.topSlot()));
+                            defs.add(LocalDefNodeGen.create(expr, locals.topSlot()));
                         } else {
                             throw new RuntimeException("Binder " + binder + " missing value expression");
                         }
@@ -119,7 +119,7 @@ final class Analyzer {
                 }
                 
                 Expr body = analyzeDo(locals, args.next());
-                return defs.isEmpty() ? body : new Do(defs.toArray(new Let[0]), body);
+                return defs.isEmpty() ? body : new Do(defs.toArray(new LocalDef[0]), body);
             } else {
                 throw new RuntimeException("Bad binding form, expected vector");
             }
