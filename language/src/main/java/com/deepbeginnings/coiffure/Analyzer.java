@@ -100,36 +100,31 @@ final class Analyzer {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
                 final IPersistentVector bindings = (IPersistentVector) bindingsForm;
-                return analyzeLetTail(locals, bindings, 0, args.next());
+                final ArrayList<Let> defs = new ArrayList<>();
+                
+                for (int i = 0; i < bindings.count(); ++i) {
+                    final Object binder = bindings.nth(i);
+                    if (binder instanceof Symbol) {
+                        ++i;
+                        if (i < bindings.count()) {
+                            final Expr expr = analyze(locals, bindings.nth(i));
+                            locals = locals.push((Symbol) binder);
+                            defs.add(LetNodeGen.create(expr, locals.topSlot()));
+                        } else {
+                            throw new RuntimeException("Binder " + binder + " missing value expression");
+                        }
+                    } else {
+                        throw new RuntimeException("Bad binding form, expected symbol, got: " + binder);
+                    }
+                }
+                
+                Expr body = analyzeDo(locals, args.next());
+                return defs.isEmpty() ? body : new Do(defs.toArray(new Let[0]), body);
             } else {
                 throw new RuntimeException("Bad binding form, expected vector");
             }
         } else {
             throw new RuntimeException("let* missing bindings");
-        }
-    }
-
-    private static Expr analyzeLetTail(
-            LocalEnv locals, IPersistentVector bindings, int bindingIndex, ISeq body
-    ) {
-        if (bindingIndex < bindings.count()) {
-            final Object binder = bindings.nth(bindingIndex);
-            if (binder instanceof Symbol) {
-                ++bindingIndex;
-                if (bindingIndex < bindings.count()) {
-                    final Expr expr = analyze(locals, bindings.nth(bindingIndex));
-                    LocalEnv locals_ = locals.push((Symbol) binder);
-                    // OPTIMIZE:
-                    return new Do(new Expr[]{LetNodeGen.create(expr, locals_.topSlot())},
-                            analyzeLetTail(locals_, bindings, ++bindingIndex, body));
-                } else {
-                    throw new RuntimeException("Binder " + binder + " missing value expression");
-                }
-            } else {
-                throw new RuntimeException("Bad binding form, expected symbol, got: " + binder);
-            }
-        } else {
-            return analyzeDo(locals, body);
         }
     }
 }
