@@ -1,9 +1,6 @@
 package com.deepbeginnings.coiffure;
 
-import clojure.lang.IPersistentVector;
-import clojure.lang.ISeq;
-import clojure.lang.Symbol;
-import clojure.lang.Util;
+import clojure.lang.*;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -15,7 +12,28 @@ final class Analyzer {
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
 
-    public static Expr analyze(FrameDescriptor locals, Object form) {
+    public static final class LocalEnv {
+        private final FrameDescriptor frameDescriptor;
+        private final IPersistentStack slots;
+
+        public static LocalEnv root(FrameDescriptor fd) { return new LocalEnv(fd); }
+
+        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentList.EMPTY); }
+
+        private LocalEnv(FrameDescriptor fd, IPersistentStack slots) {
+            this.frameDescriptor = fd;
+            this.slots = slots;
+        }
+
+        public LocalEnv push(Symbol name) {
+            FrameSlot slot = frameDescriptor.findOrAddFrameSlot(slots.count());
+            return new LocalEnv(frameDescriptor, (IPersistentStack) slots.cons(slot));
+        }
+
+        public FrameSlot topSlot() { return (FrameSlot) slots.peek(); }
+    }
+
+    public static Expr analyze(LocalEnv locals, Object form) {
         if (form instanceof ISeq) {
             ISeq coll = (ISeq) form;
 
@@ -37,7 +55,7 @@ final class Analyzer {
         }
     }
 
-    private static Expr analyzeDo(FrameDescriptor locals, ISeq args) {
+    private static Expr analyzeDo(LocalEnv locals, ISeq args) {
         if (args != null) {
             final ArrayList<Expr> stmts = new ArrayList<>();
             Expr expr = analyze(locals, args.first());
@@ -53,7 +71,7 @@ final class Analyzer {
         }
     }
 
-    private static Expr analyzeIf(FrameDescriptor locals, ISeq args) {
+    private static Expr analyzeIf(LocalEnv locals, ISeq args) {
         if (args != null) {
             final Object cond = args.first();
 
@@ -77,7 +95,7 @@ final class Analyzer {
         throw new RuntimeException("Too few arguments to if");
     }
 
-    private static Expr analyzeLet(FrameDescriptor locals, ISeq args) {
+    private static Expr analyzeLet(LocalEnv locals, ISeq args) {
         if (args != null) {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
@@ -92,7 +110,7 @@ final class Analyzer {
     }
 
     private static Expr analyzeLetTail(
-            FrameDescriptor locals, IPersistentVector bindings, int bindingIndex, ISeq body
+            LocalEnv locals, IPersistentVector bindings, int bindingIndex, ISeq body
     ) {
         if (bindingIndex < bindings.count()) {
             final Object binder = bindings.nth(bindingIndex);
@@ -100,10 +118,10 @@ final class Analyzer {
                 ++bindingIndex;
                 if (bindingIndex < bindings.count()) {
                     final Expr expr = analyze(locals, bindings.nth(bindingIndex));
-                    FrameSlot slot = locals.addFrameSlot(binder);
+                    LocalEnv locals_ = locals.push((Symbol) binder);
                     // OPTIMIZE:
-                    return new Do(new Expr[] {LetNodeGen.create(expr, slot)},
-                            analyzeLetTail(locals, bindings, ++bindingIndex, body));
+                    return new Do(new Expr[]{LetNodeGen.create(expr, locals_.topSlot())},
+                            analyzeLetTail(locals_, bindings, ++bindingIndex, body));
                 } else {
                     throw new RuntimeException("Binder " + binder + " missing value expression");
                 }

@@ -28,7 +28,8 @@ public final class Language extends TruffleLanguage<Context> {
         PeekableReader reader = new PeekableReader(source.getReader());
         
         Expr expr = null;
-        FrameDescriptor locals = new FrameDescriptor();
+        FrameDescriptor fd = new FrameDescriptor();
+        Analyzer.LocalEnv locals = Analyzer.LocalEnv.root(fd);
         while (true) {
             Object form = Parser.tryRead(reader);
             if (form == Parser.EOF) { break; }
@@ -36,6 +37,6 @@ public final class Language extends TruffleLanguage<Context> {
         }
 
         // FIXME: Make a CallTarget that runs all forms:
-        return Truffle.getRuntime().createCallTarget(new RootNode(this, locals, expr));
+        return Truffle.getRuntime().createCallTarget(new RootNode(this, fd, expr));
     }
 }
