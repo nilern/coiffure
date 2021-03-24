@@ -15,26 +15,32 @@ final class Analyzer {
     public static final class LocalEnv {
         private final FrameDescriptor frameDescriptor;
         private final IPersistentStack slots;
+        private final IPersistentMap namedSlots;
 
         public static LocalEnv root(FrameDescriptor fd) { return new LocalEnv(fd); }
 
-        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentList.EMPTY); }
+        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentList.EMPTY, PersistentHashMap.EMPTY); }
 
-        private LocalEnv(FrameDescriptor fd, IPersistentStack slots) {
+        private LocalEnv(FrameDescriptor fd, IPersistentStack slots, IPersistentMap namedSlots) {
             this.frameDescriptor = fd;
             this.slots = slots;
+            this.namedSlots = namedSlots;
         }
 
         public LocalEnv push(Symbol name) {
             FrameSlot slot = frameDescriptor.findOrAddFrameSlot(slots.count());
-            return new LocalEnv(frameDescriptor, (IPersistentStack) slots.cons(slot));
+            return new LocalEnv(frameDescriptor, (IPersistentStack) slots.cons(slot), namedSlots.assoc(name, slot));
         }
 
         public FrameSlot topSlot() { return (FrameSlot) slots.peek(); }
+
+        public FrameSlot get(Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
     }
 
     public static Expr analyze(LocalEnv locals, Object form) {
-        if (form instanceof ISeq) {
+        if (form instanceof Symbol) {
+            return analyzeSymbol(locals, (Symbol) form);
+        } else if (form instanceof ISeq) {
             ISeq coll = (ISeq) form;
 
             if (Util.equiv(coll.first(), DO)) {
@@ -52,6 +58,15 @@ final class Analyzer {
             return new Const(form);
         } else {
             throw new RuntimeException("TODO: analyze " + form);
+        }
+    }
+
+    private static Expr analyzeSymbol(final LocalEnv locals, final Symbol name) {
+        FrameSlot slot = locals.get(name);
+        if (slot != null) {
+            return LocalUseNodeGen.create(slot);
+        } else {
+            throw new RuntimeException("TODO: UseGlobal");
         }
     }
 
@@ -101,7 +116,7 @@ final class Analyzer {
             if (bindingsForm instanceof IPersistentVector) {
                 final IPersistentVector bindings = (IPersistentVector) bindingsForm;
                 final ArrayList<LocalDef> defs = new ArrayList<>();
-                
+
                 for (int i = 0; i < bindings.count(); ++i) {
                     final Object binder = bindings.nth(i);
                     if (binder instanceof Symbol) {
@@ -117,7 +132,7 @@ final class Analyzer {
                         throw new RuntimeException("Bad binding form, expected symbol, got: " + binder);
                     }
                 }
-                
+
                 Expr body = analyzeDo(locals, args.next());
                 return defs.isEmpty() ? body : new Do(defs.toArray(new LocalDef[0]), body);
             } else {
