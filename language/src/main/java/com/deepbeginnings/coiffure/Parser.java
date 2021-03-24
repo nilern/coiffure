@@ -78,7 +78,7 @@ final class Parser {
     private static boolean isSymbolPart(int c) {
         return c != -1
                 && !Character.isWhitespace(c)
-                && "()".indexOf(c) == -1;
+                && "()[]".indexOf(c) == -1;
     }
 
     private IPersistentCollection readList() throws IOException {

@@ -14,25 +14,27 @@ final class Analyzer {
 
     public static final class LocalEnv {
         private final FrameDescriptor frameDescriptor;
-        private final IPersistentStack slots;
         private final IPersistentMap namedSlots;
+        private final FrameSlot slot;
+        private final int depth;
 
         public static LocalEnv root(FrameDescriptor fd) { return new LocalEnv(fd); }
 
-        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentList.EMPTY, PersistentHashMap.EMPTY); }
+        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentHashMap.EMPTY, null, 0); }
 
-        private LocalEnv(FrameDescriptor fd, IPersistentStack slots, IPersistentMap namedSlots) {
+        private LocalEnv(FrameDescriptor fd, IPersistentMap namedSlots, FrameSlot slot, int depth) {
             this.frameDescriptor = fd;
-            this.slots = slots;
             this.namedSlots = namedSlots;
+            this.slot = slot;
+            this.depth = depth;
         }
 
         public LocalEnv push(Symbol name) {
-            FrameSlot slot = frameDescriptor.findOrAddFrameSlot(slots.count());
-            return new LocalEnv(frameDescriptor, (IPersistentStack) slots.cons(slot), namedSlots.assoc(name, slot));
+            FrameSlot slot = frameDescriptor.findOrAddFrameSlot(depth);
+            return new LocalEnv(frameDescriptor, namedSlots.assoc(name, slot), slot, depth + 1);
         }
 
-        public FrameSlot topSlot() { return (FrameSlot) slots.peek(); }
+        public FrameSlot topSlot() { return slot; }
 
         public FrameSlot get(Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
     }
