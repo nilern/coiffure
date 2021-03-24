@@ -12,34 +12,57 @@ final class Analyzer {
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
 
-    public static final class LocalEnv {
+    public static abstract class Env {
+        protected final IPersistentMap namedSlots;
+
+        public static Env root(FrameDescriptor fd) { return new RootEnv(fd); }
+
+        private Env(IPersistentMap namedSlots) { this.namedSlots = namedSlots; }
+
+        private FrameSlot get(Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
+        
+        abstract protected RootEnv getRoot();
+
+        private NestedEnv push(Symbol name) {
+            RootEnv root = getRoot();
+            FrameSlot slot = getRoot().addSlot();
+            return new NestedEnv(namedSlots, root, name, slot);
+        }
+    }
+    
+    private static final class RootEnv extends Env {
         private final FrameDescriptor frameDescriptor;
-        private final IPersistentMap namedSlots;
-        private final FrameSlot slot;
-        private final int depth;
-
-        public static LocalEnv root(FrameDescriptor fd) { return new LocalEnv(fd); }
-
-        private LocalEnv(FrameDescriptor fd) { this(fd, PersistentHashMap.EMPTY, null, 0); }
-
-        private LocalEnv(FrameDescriptor fd, IPersistentMap namedSlots, FrameSlot slot, int depth) {
+        private int localsCount;
+        
+        private RootEnv(FrameDescriptor fd) {
+            super(PersistentHashMap.EMPTY);
             this.frameDescriptor = fd;
-            this.namedSlots = namedSlots;
+            this.localsCount = 0;
+        }
+
+        @Override
+        protected RootEnv getRoot() { return this; }
+        
+        private FrameSlot addSlot() { return frameDescriptor.addFrameSlot(localsCount++); }
+    }
+    
+    private static final class NestedEnv extends Env {
+        private final RootEnv root;
+        private final FrameSlot slot;
+        
+        private NestedEnv(IPersistentMap namedSlots, RootEnv root, Symbol name, FrameSlot slot) {
+            super(namedSlots.assoc(name, slot));
+            this.root = root;
             this.slot = slot;
-            this.depth = depth;
         }
 
-        public LocalEnv push(Symbol name) {
-            FrameSlot slot = frameDescriptor.findOrAddFrameSlot(depth);
-            return new LocalEnv(frameDescriptor, namedSlots.assoc(name, slot), slot, depth + 1);
-        }
+        @Override
+        protected RootEnv getRoot() { return root; }
 
-        public FrameSlot topSlot() { return slot; }
-
-        public FrameSlot get(Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
+        private FrameSlot topSlot() { return slot; }
     }
 
-    public static Expr analyze(LocalEnv locals, Object form) {
+    public static Expr analyze(Env locals, Object form) {
         if (form instanceof Symbol) {
             return analyzeSymbol(locals, (Symbol) form);
         } else if (form instanceof ISeq) {
@@ -63,7 +86,7 @@ final class Analyzer {
         }
     }
 
-    private static Expr analyzeSymbol(final LocalEnv locals, final Symbol name) {
+    private static Expr analyzeSymbol(final Env locals, final Symbol name) {
         FrameSlot slot = locals.get(name);
         if (slot != null) {
             return LocalUseNodeGen.create(slot);
@@ -72,7 +95,7 @@ final class Analyzer {
         }
     }
 
-    private static Expr analyzeDo(LocalEnv locals, ISeq args) {
+    private static Expr analyzeDo(Env locals, ISeq args) {
         if (args != null) {
             final ArrayList<Expr> stmts = new ArrayList<>();
             Expr expr = analyze(locals, args.first());
@@ -88,7 +111,7 @@ final class Analyzer {
         }
     }
 
-    private static Expr analyzeIf(LocalEnv locals, ISeq args) {
+    private static Expr analyzeIf(Env locals, ISeq args) {
         if (args != null) {
             final Object cond = args.first();
 
@@ -112,7 +135,7 @@ final class Analyzer {
         throw new RuntimeException("Too few arguments to if");
     }
 
-    private static Expr analyzeLet(LocalEnv locals, ISeq args) {
+    private static Expr analyzeLet(Env locals, ISeq args) {
         if (args != null) {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
@@ -125,8 +148,9 @@ final class Analyzer {
                         ++i;
                         if (i < bindings.count()) {
                             final Expr expr = analyze(locals, bindings.nth(i));
-                            locals = locals.push((Symbol) binder);
-                            defs.add(LocalDefNodeGen.create(expr, locals.topSlot()));
+                            NestedEnv locals_ = locals.push((Symbol) binder);
+                            locals = locals_;
+                            defs.add(LocalDefNodeGen.create(expr, locals_.topSlot()));
                         } else {
                             throw new RuntimeException("Binder " + binder + " missing value expression");
                         }

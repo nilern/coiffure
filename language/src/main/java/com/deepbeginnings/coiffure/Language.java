@@ -29,7 +29,7 @@ public final class Language extends TruffleLanguage<Context> {
         
         Expr expr = null;
         FrameDescriptor fd = new FrameDescriptor();
-        Analyzer.LocalEnv locals = Analyzer.LocalEnv.root(fd);
+        Analyzer.Env locals = Analyzer.Env.root(fd);
         while (true) {
             Object form = Parser.tryRead(reader);
             if (form == Parser.EOF) { break; }
