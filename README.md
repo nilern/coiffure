@@ -50,8 +50,8 @@ SOFTWARE.
 
 ### Clojure
 
-A lot of runtime code (in the `clojure.lang` package, and headered as such in the files) was imported from the [original
-Clojure implementation](https://github.com/clojure/clojure):
+A lot of runtime code (mostly in the `clojure.lang` package, and headered as such in the files) was imported from the
+[original Clojure implementation](https://github.com/clojure/clojure):
 
 ```
  *   Clojure

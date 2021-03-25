@@ -11,6 +11,7 @@ final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
+    private static final Symbol DEF = Symbol.intern("def");
 
     public static abstract class Env {
         protected final IPersistentMap namedSlots;
@@ -74,6 +75,8 @@ final class Analyzer {
                 return analyzeIf(locals, coll.next());
             } else if (Util.equiv(coll.first(), LETS)) {
                 return analyzeLet(locals, coll.next());
+            } else if (Util.equiv(coll.first(), DEF)) {
+                return analyzeDef(locals, coll.next());
             } else {
                 throw new RuntimeException("TODO");
             }
@@ -166,6 +169,37 @@ final class Analyzer {
             }
         } else {
             throw new RuntimeException("let* missing bindings");
+        }
+    }
+    
+    private static Expr analyzeDef(Env locals, ISeq args) {
+        if (args != null) {
+            final Object nameForm = args.first();
+            
+            if ((args = args.next()) != null) {
+                final Object init = args.first();
+                
+                if (args.next() == null) {
+                    if (nameForm instanceof Symbol) {
+                        final Symbol name = (Symbol) nameForm;
+                        
+                        final Var var = Namespaces.lookupVar(name, true);
+                        if (var != null) {
+                            return Def.create(var, analyze(locals, init));
+                        } else {
+                            throw new RuntimeException("Can't def a non-pre-existing qualified var");
+                        }
+                    } else {
+                        throw new RuntimeException("First argument to def must be a symbol");
+                    }
+                } else {
+                    throw new RuntimeException("Too many arguments to def");
+                }
+            } else {
+                throw new AssertionError("TODO");
+            }
+        } else {
+            throw new RuntimeException("Too few arguments to def");
         }
     }
 }
