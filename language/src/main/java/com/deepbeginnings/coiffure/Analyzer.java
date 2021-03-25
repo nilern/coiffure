@@ -12,6 +12,7 @@ final class Analyzer {
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol DEF = Symbol.intern("def");
+    private static final Symbol VAR = Symbol.intern("var");
 
     public static abstract class Env {
         protected final IPersistentMap namedSlots;
@@ -77,6 +78,8 @@ final class Analyzer {
                 return analyzeLet(locals, coll.next());
             } else if (Util.equiv(coll.first(), DEF)) {
                 return analyzeDef(locals, coll.next());
+            } else if (Util.equiv(coll.first(), VAR)) {
+                return analyzeVar(coll.next());
             } else {
                 throw new RuntimeException("TODO");
             }
@@ -100,6 +103,30 @@ final class Analyzer {
             } else {
                 throw new AssertionError("TODO");
             }
+        }
+    }
+
+    private static Expr analyzeVar(ISeq args) {
+        if (args != null) {
+            Object nameForm = args.first();
+            
+            if (args.next() == null) {
+                if (nameForm instanceof Symbol) {
+                    Symbol name = (Symbol) nameForm;
+                    Var var = Namespaces.lookupVar(name, false);
+                    if (var != null) {
+                        return new Const(var);
+                    } else {
+                        throw new RuntimeException("Unable to resolve var: " + name + " in this context");
+                    }
+                } else {
+                    throw new RuntimeException("var argument must be a symbol");
+                }
+            } else {
+                throw new RuntimeException("Too many arguments to var");
+            }
+        } else {
+            throw new RuntimeException("Too few arguments to var");
         }
     }
 

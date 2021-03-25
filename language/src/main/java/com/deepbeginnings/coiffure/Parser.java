@@ -9,6 +9,8 @@ import java.util.ListIterator;
 final class Parser {
     public static final Object EOF = new Object();
 
+    private static final Symbol VAR = Symbol.intern("var");
+
     public static Object read(PeekableReader input) throws IOException { return new Parser(input).read(); }
 
     public static Object tryRead(PeekableReader input) throws IOException { return new Parser(input).tryRead(); }
@@ -38,7 +40,21 @@ final class Parser {
         case '(': return readList();
         case '[': return readVector();
 
+        case '#': return readHashy();
+
         default: return readAtom();
+        }
+    }
+
+    private Object readHashy() throws IOException {
+        input.read(); // discard '#'
+
+        switch (input.peek()) {
+        case '\'':
+            input.read(); // discard '\''
+            return RT.list(VAR, read());
+
+        default: throw new AssertionError("TODO");
         }
     }
 
@@ -78,7 +94,7 @@ final class Parser {
     private static boolean isSymbolPart(int c) {
         return c != -1
                 && !Character.isWhitespace(c)
-                && "()[]".indexOf(c) == -1;
+                && "()[]#".indexOf(c) == -1;
     }
 
     private IPersistentCollection readList() throws IOException {
