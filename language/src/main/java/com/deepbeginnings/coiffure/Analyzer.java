@@ -94,7 +94,12 @@ final class Analyzer {
         if (slot != null) {
             return LocalUseNodeGen.create(slot);
         } else {
-            throw new RuntimeException("TODO: UseGlobal");
+            Object v = Namespaces.resolve(name);
+            if (v instanceof Var) {
+                return GlobalUseNodeGen.create((Var) v);
+            } else {
+                throw new AssertionError("TODO");
+            }
         }
     }
 
@@ -185,7 +190,7 @@ final class Analyzer {
                         
                         final Var var = Namespaces.lookupVar(name, true);
                         if (var != null) {
-                            return Def.create(var, analyze(locals, init));
+                            return GlobalDef.create(var, analyze(locals, init));
                         } else {
                             throw new RuntimeException("Can't def a non-pre-existing qualified var");
                         }

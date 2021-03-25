@@ -21,6 +21,9 @@ class Namespaces {
     private static final Namespace CLOJURE_NS = Namespace.findOrCreate(Symbol.intern("clojure.core"));
     private static final Var IN_NS_VAR = Var.intern(CLOJURE_NS, NS, false);
     private static final Var NS_VAR = Var.intern(CLOJURE_NS, IN_NS, false);
+    private final static Var ALLOW_UNRESOLVED_VARS =
+            Var.intern(CLOJURE_NS, Symbol.intern("*allow-unresolved-vars*"), false)
+                    .setDynamic();
 
     private static Namespace currentNS() { return (Namespace) RT.CURRENT_NS.deref(); }
 
@@ -65,5 +68,40 @@ class Namespaces {
         }
 
         return var;
+    }
+
+    static Object resolve(Symbol sym) { return resolveIn(currentNS(), sym, false); }
+
+    private static Object resolveIn(Namespace n, Symbol sym, boolean allowPrivate) {
+        //note - ns-qualified vars must already exist
+        if (sym.getNamespace() != null) {
+            Namespace ns = namespaceFor(n, sym);
+            if (ns == null) { throw Util.runtimeException("No such namespace: " + sym.getNamespace()); }
+
+            Var v = ns.findInternedVar(Symbol.intern(sym.getName()));
+            if (v == null) {
+                throw Util.runtimeException("No such var: " + sym);
+            } else if (v.ns != currentNS() && !v.isPublic() && !allowPrivate) {
+                throw new IllegalStateException("var: " + sym + " is not public");
+            }
+            return v;
+        } else if (sym.getName().indexOf('.') > 0 || sym.getName().charAt(0) == '[') {
+            return RT.classForName(sym.getName());
+        } else if (sym.equals(NS)) {
+            return NS_VAR;
+        } else if (sym.equals(IN_NS)) {
+            return IN_NS_VAR;
+        } else {
+            // HACK(nilern): comment out: if (Util.equals(sym, COMPILE_STUB_SYM.get())) { return COMPILE_STUB_CLASS.get(); }
+            Object o = n.getMapping(sym);
+            if (o == null) {
+                if (RT.booleanCast(ALLOW_UNRESOLVED_VARS.deref())) {
+                    return sym;
+                } else {
+                    throw Util.runtimeException("Unable to resolve symbol: " + sym + " in this context");
+                }
+            }
+            return o;
+        }
     }
 }
