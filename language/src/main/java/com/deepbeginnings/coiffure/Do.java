@@ -1,22 +1,29 @@
 package com.deepbeginnings.coiffure;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.BlockNode;
 import com.oracle.truffle.api.nodes.Node;
 
-final class Do extends Expr {
-    @Node.Children
-    Expr[] stmts;
+final class Do extends Expr implements BlockNode.ElementExecutor<Expr> {
     @Node.Child
-    Expr expr;
-    
-    public Do(Expr[] stmts, Expr expr) {
-        this.stmts = stmts;
-        this.expr = expr;
+    private BlockNode<Expr> block;
+
+    public static Expr create(Expr[] stmts) {
+        switch (stmts.length) {
+        case 0: return new Const(null);
+        case 1: return stmts[0];
+        default: return new Do(stmts);
+        }
     }
-    
+
+    private Do(Expr[] stmts) { this.block = BlockNode.create(stmts, this); }
+
     @Override
-    public Object execute(VirtualFrame frame) {
-        for (Expr stmt : stmts) { stmt.execute(frame); }
-        return expr.execute(frame);
-    }
+    public void executeVoid(VirtualFrame frame, Expr stmt, int index, int arg) { stmt.execute(frame); }
+
+    @Override
+    public Object executeGeneric(VirtualFrame frame, Expr expr, int index, int arg) { return expr.execute(frame); }
+
+    @Override
+    public Object execute(VirtualFrame frame) { return block.executeGeneric(frame, 0); }
 }

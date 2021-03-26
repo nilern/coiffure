@@ -22,7 +22,7 @@ final class Analyzer {
         private Env(IPersistentMap namedSlots) { this.namedSlots = namedSlots; }
 
         private FrameSlot get(Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
-        
+
         abstract protected RootEnv getRoot();
 
         private NestedEnv push(Symbol name) {
@@ -31,11 +31,11 @@ final class Analyzer {
             return new NestedEnv(namedSlots, root, name, slot);
         }
     }
-    
+
     private static final class RootEnv extends Env {
         private final FrameDescriptor frameDescriptor;
         private int localsCount;
-        
+
         private RootEnv(FrameDescriptor fd) {
             super(PersistentHashMap.EMPTY);
             this.frameDescriptor = fd;
@@ -44,14 +44,14 @@ final class Analyzer {
 
         @Override
         protected RootEnv getRoot() { return this; }
-        
+
         private FrameSlot addSlot() { return frameDescriptor.addFrameSlot(localsCount++); }
     }
-    
+
     private static final class NestedEnv extends Env {
         private final RootEnv root;
         private final FrameSlot slot;
-        
+
         private NestedEnv(IPersistentMap namedSlots, RootEnv root, Symbol name, FrameSlot slot) {
             super(namedSlots.assoc(name, slot));
             this.root = root;
@@ -109,7 +109,7 @@ final class Analyzer {
     private static Expr analyzeVar(ISeq args) {
         if (args != null) {
             Object nameForm = args.first();
-            
+
             if (args.next() == null) {
                 if (nameForm instanceof Symbol) {
                     Symbol name = (Symbol) nameForm;
@@ -131,19 +131,13 @@ final class Analyzer {
     }
 
     private static Expr analyzeDo(Env locals, ISeq args) {
-        if (args != null) {
-            final ArrayList<Expr> stmts = new ArrayList<>();
-            Expr expr = analyze(locals, args.first());
+        final ArrayList<Expr> stmts = new ArrayList<>();
 
-            while ((args = args.next()) != null) {
-                stmts.add(expr);
-                expr = analyze(locals, args.first());
-            }
-
-            return stmts.isEmpty() ? expr : new Do(stmts.toArray(new Expr[0]), expr);
-        } else {
-            return new Const(null);
+        for (; args != null; args = args.next()) {
+            stmts.add(analyze(locals, args.first()));
         }
+
+        return Do.create(stmts.toArray(new Expr[0]));
     }
 
     private static Expr analyzeIf(Env locals, ISeq args) {
@@ -175,7 +169,7 @@ final class Analyzer {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
                 final IPersistentVector bindings = (IPersistentVector) bindingsForm;
-                final ArrayList<LocalDef> defs = new ArrayList<>();
+                final ArrayList<Expr> stmts = new ArrayList<>();
 
                 for (int i = 0; i < bindings.count(); ++i) {
                     final Object binder = bindings.nth(i);
@@ -185,7 +179,7 @@ final class Analyzer {
                             final Expr expr = analyze(locals, bindings.nth(i));
                             NestedEnv locals_ = locals.push((Symbol) binder);
                             locals = locals_;
-                            defs.add(LocalDefNodeGen.create(expr, locals_.topSlot()));
+                            stmts.add(LocalDefNodeGen.create(expr, locals_.topSlot()));
                         } else {
                             throw new RuntimeException("Binder " + binder + " missing value expression");
                         }
@@ -194,8 +188,8 @@ final class Analyzer {
                     }
                 }
 
-                Expr body = analyzeDo(locals, args.next());
-                return defs.isEmpty() ? body : new Do(defs.toArray(new LocalDef[0]), body);
+                stmts.add(analyzeDo(locals, args.next()));
+                return Do.create(stmts.toArray(new Expr[0]));
             } else {
                 throw new RuntimeException("Bad binding form, expected vector");
             }
@@ -203,18 +197,18 @@ final class Analyzer {
             throw new RuntimeException("let* missing bindings");
         }
     }
-    
+
     private static Expr analyzeDef(Env locals, ISeq args) {
         if (args != null) {
             final Object nameForm = args.first();
-            
+
             if ((args = args.next()) != null) {
                 final Object init = args.first();
-                
+
                 if (args.next() == null) {
                     if (nameForm instanceof Symbol) {
                         final Symbol name = (Symbol) nameForm;
-                        
+
                         final Var var = Namespaces.lookupVar(name, true);
                         if (var != null) {
                             return GlobalDef.create(var, analyze(locals, init));
