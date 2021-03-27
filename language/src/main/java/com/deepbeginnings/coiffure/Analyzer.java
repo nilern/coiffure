@@ -6,6 +6,7 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
 import java.util.ArrayList;
+import java.util.List;
 
 final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
@@ -13,6 +14,7 @@ final class Analyzer {
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol DEF = Symbol.intern("def");
     private static final Symbol VAR = Symbol.intern("var");
+    private static final Symbol DOT = Symbol.intern(".");
 
     public static abstract class Env {
         protected final IPersistentMap namedSlots;
@@ -80,8 +82,10 @@ final class Analyzer {
                 return analyzeDef(locals, coll.next());
             } else if (Util.equiv(coll.first(), VAR)) {
                 return analyzeVar(coll.next());
+            } else if (Util.equiv(coll.first(), DOT)) {
+                return analyzeDot(locals, coll.next());
             } else {
-                throw new RuntimeException("TODO");
+                throw new RuntimeException("TODO: " + coll.first());
             }
         } else if (form == null
                 || form instanceof Boolean
@@ -227,5 +231,30 @@ final class Analyzer {
         } else {
             throw new RuntimeException("Too few arguments to def");
         }
+    }
+
+    private static Expr analyzeDot(final Env locals, ISeq argForms) {
+        if (argForms != null) {
+            final Expr receiver = analyze(locals, argForms.first());
+
+            if ((argForms = argForms.next()) != null) {
+                final Object msgForm = argForms.first();
+
+                if (msgForm instanceof Symbol) {
+                    final String methodName = ((Symbol) msgForm).getName();
+
+                    final List<Expr> args = new ArrayList<>();
+                    while ((argForms = argForms.next()) != null) {
+                        args.add(analyze(locals, argForms.first()));
+                    }
+
+                    return InvokeInstance.create(receiver, methodName, args.toArray(new Expr[0]));
+                } else {
+                    throw new AssertionError("TODO");
+                }
+            }
+        }
+
+        throw new RuntimeException("Too few arguments to .");
     }
 }
