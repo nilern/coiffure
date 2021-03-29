@@ -14,6 +14,7 @@ final class Analyzer {
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol DEF = Symbol.intern("def");
     private static final Symbol VAR = Symbol.intern("var");
+    private static final Symbol NEW = Symbol.intern("new");
     private static final Symbol DOT = Symbol.intern(".");
 
     public static abstract class Env {
@@ -82,6 +83,8 @@ final class Analyzer {
                 return analyzeDef(locals, coll.next());
             } else if (Util.equiv(coll.first(), VAR)) {
                 return analyzeVar(coll.next());
+            } else if (Util.equiv(coll.first(), NEW)) {
+                return analyzeNew(locals, coll.next());
             } else if (Util.equiv(coll.first(), DOT)) {
                 return analyzeDot(locals, coll.next());
             } else {
@@ -230,6 +233,25 @@ final class Analyzer {
             }
         } else {
             throw new RuntimeException("Too few arguments to def");
+        }
+    }
+
+    private static Expr analyzeNew(final Env locals, ISeq argForms) {
+        if (argForms != null) {
+            final Object classname = argForms.first();
+            final Class<?> klass = (classname instanceof Symbol && locals.get((Symbol) classname) != null)
+                    ? null
+                    : Namespaces.maybeClass(classname, false);
+            if (klass == null) { throw new RuntimeException("Unable to resolve classname: " + classname); }
+
+            final ArrayList<Expr> args = new ArrayList<>();
+            while ((argForms = argForms.next()) != null) {
+                args.add(analyze(locals, argForms.first()));
+            }
+
+            return New.create(klass, args.toArray(new Expr[0]));
+        } else {
+            throw new RuntimeException("New expression missing class");
         }
     }
 

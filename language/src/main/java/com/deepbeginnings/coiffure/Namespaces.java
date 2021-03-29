@@ -104,4 +104,38 @@ class Namespaces {
             return o;
         }
     }
+
+    public static Class<?> maybeClass(Object form, boolean stringOk) {
+        if (form instanceof Class) { return (Class<?>) form; }
+
+        Class<?> c = null;
+
+        if (form instanceof Symbol) {
+            Symbol sym = (Symbol) form;
+            if (sym.getNamespace() == null) {//if ns-qualified can't be classname
+                // HACK(nilern): comment out: if (Util.equals(sym, COMPILE_STUB_SYM.get())) { return (Class) COMPILE_STUB_CLASS.get(); }
+                if (sym.getName().indexOf('.') > 0 || sym.getName().charAt(0) == '[') {
+                    c = RT.classForNameNonLoading(sym.getName());
+                } else {
+                    Object o = currentNS().getMapping(sym);
+                    if (o instanceof Class) {
+                        c = (Class<?>) o;
+                    } /* HACK(nilern): comment out: else if (LOCAL_ENV.deref() != null && ((java.util.Map) LOCAL_ENV.deref()).containsKey(form)) {
+                        return null;
+                    }*/ else {
+                        try {
+                            c = RT.classForNameNonLoading(sym.getName());
+                        } catch (Exception e) {
+                            // aargh
+                            // leave c set to null -> return null
+                        }
+                    }
+                }
+            }
+        } else if (stringOk && form instanceof String) {
+            c = RT.classForNameNonLoading((String) form);
+        }
+
+        return c;
+    }
 }
