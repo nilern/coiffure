@@ -3,9 +3,8 @@ package com.deepbeginnings.coiffure;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-final class RootNode extends com.oracle.truffle.api.nodes.RootNode {
-    @Child
-    Expr body;
+class RootNode extends com.oracle.truffle.api.nodes.RootNode {
+    @Child Expr body;
 
     public RootNode(Language lang, FrameDescriptor locals, Expr body) {
         super(lang, locals);
