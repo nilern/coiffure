@@ -302,16 +302,16 @@ final class Analyzer {
 
     private static Expr analyzeFn(final FrameEnv locals, ISeq args) {
         final MethodNode[] methods = new MethodNode[MAX_POSITIONAL_ARITY + 1];
+        MethodNode variadicMethod = null;
         final ClosureEnv env = locals.pushFn();
 
         {
-            boolean seenVariadic = false;
             for (int i = 0; args != null; args = args.next(), ++i) {
                 final MethodNode method = analyzeMethod(false, env, args.first());
 
                 if (method.isVariadic) {
-                    if (!seenVariadic) {
-                        seenVariadic = true;
+                    if (variadicMethod == null) {
+                        variadicMethod = method;
                     } else {
                         throw new RuntimeException("Can't have more than 1 variadic overload");
                     }
@@ -325,7 +325,7 @@ final class Analyzer {
             }
         }
 
-        return new ClosureNode(methods, env.closings.values().toArray(new Expr[0]));
+        return new ClosureNode(methods, variadicMethod, env.closings.values().toArray(new Expr[0]));
     }
 
     private static MethodNode analyzeMethod(final boolean isStatic, final MethodsEnv env, final Object methodForm) {

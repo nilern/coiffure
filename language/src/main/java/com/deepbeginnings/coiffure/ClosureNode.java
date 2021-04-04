@@ -5,10 +5,12 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 final class ClosureNode extends Expr {
     @Children private MethodNode[] methods;
+    private final MethodNode variadicMethod;
     @Children private Expr[] closings;
 
-    public ClosureNode(final MethodNode[] methods, final Expr[] closings) {
+    public ClosureNode(final MethodNode[] methods, final MethodNode variadicMethod, final Expr[] closings) {
         this.methods = methods;
+        this.variadicMethod = variadicMethod;
         this.closings = closings;
     }
 
@@ -21,6 +23,8 @@ final class ClosureNode extends Expr {
             clovers[i] = closings[i].execute(frame);
         }
 
-        return new Closure(methods, clovers);
+        return (variadicMethod != null)
+                ? new RestClosure(methods, variadicMethod, clovers)
+                : new Closure(methods, clovers);
     }
 }

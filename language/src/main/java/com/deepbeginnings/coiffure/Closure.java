@@ -1,10 +1,11 @@
 package com.deepbeginnings.coiffure;
 
 import clojure.lang.AFunction;
-import clojure.lang.ArraySeq;
+import clojure.lang.Util;
+
 import com.oracle.truffle.api.Truffle;
 
-public class Closure extends AFunction {
+public class Closure extends AFunction implements IClosure {
     private final MethodNode[] methods;
     private final Object[] clovers; // OPTIMIZE: Closure extends DynamicObject?
 
@@ -14,23 +15,31 @@ public class Closure extends AFunction {
     }
 
     @Override
-    public Object invoke(final Object arg) {
-        final int arity = 1;
-
-        MethodNode method = methods[arity];
-        if (method != null) {
-            return Truffle.getRuntime().createCallTarget(method).call(this, arg);
-        } else {
-            for (int i = arity - 1; i >= 0; --i) { // OPTIMIZE: Direct ref to single variadic method?
-                method = methods[i];
-                if (method != null && method.isVariadic) {
-                    return Truffle.getRuntime().createCallTarget(method).call(this, ArraySeq.create(arg));
-                }
-            }
-        }
-
-        return super.invoke(arg);
-    }
-    
     public Object clover(final int index) { return clovers[index]; }
+
+    @Override
+    public Object invoke() {
+        final int argc = 0;
+
+        final MethodNode method = methods[argc];
+        if (method != null) {
+            return Truffle.getRuntime().createCallTarget(method)
+                    .call(this);
+        } else {
+            return throwArity(argc);
+        }
+    }
+
+    @Override
+    public Object invoke(Object arg) {
+        final int argc = 1;
+
+        final MethodNode method = methods[argc];
+        if (method != null) {
+            return Truffle.getRuntime().createCallTarget(method)
+                    .call(this, Util.ret1(arg, arg = null));
+        } else {
+            return throwArity(argc);
+        }
+    }
 }

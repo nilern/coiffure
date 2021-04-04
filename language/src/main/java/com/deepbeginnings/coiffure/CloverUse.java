@@ -10,10 +10,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 @NodeField(name = "index", type = Integer.class)
 abstract class CloverUse extends Expr {
     protected abstract FrameSlot getSlot();
+
     protected abstract int getIndex();
 
     @Specialization
     protected Object readObject(final VirtualFrame frame) {
-        return ((Closure) FrameUtil.getObjectSafe(frame, getSlot())).clover(getIndex());
+        return ((IClosure) FrameUtil.getObjectSafe(frame, getSlot())).clover(getIndex());
     }
 }
