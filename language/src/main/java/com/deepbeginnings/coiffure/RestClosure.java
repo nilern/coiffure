@@ -23,7 +23,19 @@ public class RestClosure extends RestFn implements IClosure {
     public int getRequiredArity() { return variadicMethod.minArity; }
 
     @Override
-    public Object doInvoke(final Object args) {
+    protected Object doInvoke(Object args) {
+        return Truffle.getRuntime().createCallTarget(methods[0])
+                .call(this, Util.ret1(args, args = null));
+    }
+
+    @Override
+    protected Object doInvoke(Object arg, Object args) {
+        return Truffle.getRuntime().createCallTarget(methods[1])
+                .call(this, Util.ret1(arg, arg = null), Util.ret1(args, args = null));
+    }
+
+    @Override
+    public Object invoke() {
         final int argc = 0;
 
         final MethodNode method = methods[argc];
@@ -32,8 +44,7 @@ public class RestClosure extends RestFn implements IClosure {
                 return Truffle.getRuntime().createCallTarget(method)
                         .call(this);
             } else {
-                return Truffle.getRuntime().createCallTarget(variadicMethod)
-                        .call(this, args);
+                return super.invoke();
             }
         } else {
             return throwArity(argc);
@@ -41,7 +52,7 @@ public class RestClosure extends RestFn implements IClosure {
     }
 
     @Override
-    public Object doInvoke(Object arg, final Object args) {
+    public Object invoke(Object arg) {
         final int argc = 1;
 
         final MethodNode method = methods[argc];
@@ -50,8 +61,7 @@ public class RestClosure extends RestFn implements IClosure {
                 return Truffle.getRuntime().createCallTarget(method)
                         .call(this, Util.ret1(arg, arg = null));
             } else {
-                return Truffle.getRuntime().createCallTarget(variadicMethod)
-                        .call(this, Util.ret1(arg, arg = null), args);
+                return super.invoke(Util.ret1(arg, arg = null));
             }
         } else {
             return throwArity(argc);
