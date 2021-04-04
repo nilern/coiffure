@@ -18,7 +18,7 @@ final class Analyzer {
     private static final Symbol DOT = Symbol.intern(".");
     private static final Symbol _AMP_ = Symbol.intern("&");
 
-    private static final int MAX_POSITIONAL_ARITY = 20;
+    static final int MAX_POSITIONAL_ARITY = 20;
 
     private static abstract class Env {
         protected abstract Expr get(Symbol name);
