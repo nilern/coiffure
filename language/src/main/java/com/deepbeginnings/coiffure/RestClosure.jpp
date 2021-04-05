@@ -15,9 +15,9 @@ import com.deepbeginnings.coiffure.nodes.MethodNode;
         if (method != null) { \
             if (method != variadicMethod) { \
                 return Truffle.getRuntime().createCallTarget(method) \
-                        .call(this args); \
+                        .call(this, args); \
             } else { \
-                return super.invoke(); \
+                return super.invoke(args); \
             } \
         } else { \
             return throwArity(argc); \
@@ -27,7 +27,7 @@ import com.deepbeginnings.coiffure.nodes.MethodNode;
 #define DO_INVOKE(argc, params, args) \
     protected Object doInvoke(params) { \
         return Truffle.getRuntime().createCallTarget(methods[argc]) \
-                .call(this args); \
+                .call(this, args); \
     }
 
 public class RestClosure extends RestFn implements IClosure {
@@ -44,7 +44,20 @@ public class RestClosure extends RestFn implements IClosure {
     @Override
     public Object clover(final int index) { return clovers[index]; }
 
-    @Override INVOKE(0, PARAMS0(), ARGS0())
+    @Override public Object invoke() {
+        final MethodNode method = methods[0];
+        if (method != null) {
+            if (method != variadicMethod) {
+                return Truffle.getRuntime().createCallTarget(method)
+                        .call(this);
+            } else {
+                return super.invoke();
+            }
+        } else {
+            return throwArity(0);
+        }
+    }
+
     @Override INVOKE(1, PARAMS1(arg), ARGS1(arg))
     @Override INVOKE(2, PARAMS2(arg1, arg2), ARGS2(arg1, arg2))
     @Override INVOKE(3, PARAMS3(arg1, arg2, arg3), ARGS3(arg1, arg2, arg3))

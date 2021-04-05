@@ -326,6 +326,17 @@ public final class Analyzer {
             }
         }
 
+        if (variadicMethod != null) {
+            for (int arity = variadicMethod.getMinArity() + 1; arity < methods.length; ++arity) {
+                if (methods[arity] == null) {
+                    methods[arity] = variadicMethod;
+                } else {
+                    throw new RuntimeException(
+                            "Can't have fixed arity function with more params than variadic function");
+                }
+            }
+        }
+
         return new ClosureNode(methods, variadicMethod, env.closings.values().toArray(new Expr[0]));
     }
 

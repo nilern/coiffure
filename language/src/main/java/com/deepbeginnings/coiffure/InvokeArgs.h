@@ -8,8 +8,8 @@
 
 #define ARG(arg) Util.ret1(arg, arg = null)
 #define ARGS0()
-#define ARGS1(arg) , ARG(arg)
-#define ARGS2(arg, ...) , ARG(arg) ARGS1(__VA_ARGS__)
-#define ARGS3(arg, ...) , ARG(arg) ARGS2(__VA_ARGS__)
-#define ARGS4(arg, ...) , ARG(arg) ARGS3(__VA_ARGS__)
-#define ARGS5(arg, ...) , ARG(arg) ARGS4(__VA_ARGS__)
+#define ARGS1(arg) ARG(arg)
+#define ARGS2(arg, ...) ARG(arg), ARGS1(__VA_ARGS__)
+#define ARGS3(arg, ...) ARG(arg), ARGS2(__VA_ARGS__)
+#define ARGS4(arg, ...) ARG(arg), ARGS3(__VA_ARGS__)
+#define ARGS5(arg, ...) ARG(arg), ARGS4(__VA_ARGS__)

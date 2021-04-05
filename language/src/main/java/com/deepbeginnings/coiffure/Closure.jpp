@@ -14,7 +14,7 @@ import com.deepbeginnings.coiffure.nodes.MethodNode;
         final MethodNode method = methods[argc]; \
         if (method != null) { \
             return Truffle.getRuntime().createCallTarget(method) \
-                    .call(this args); \
+                    .call(this, args); \
         } else { \
             return throwArity(argc); \
         } \
@@ -32,7 +32,16 @@ public class Closure extends AFunction implements IClosure {
     @Override
     public Object clover(final int index) { return clovers[index]; }
 
-    @Override INVOKE(0, PARAMS0(), ARGS0())
+    @Override public Object invoke() {
+        final MethodNode method = methods[0];
+        if (method != null) {
+            return Truffle.getRuntime().createCallTarget(method)
+                    .call(this);
+        } else {
+            return throwArity(0);
+        }
+    }
+
     @Override INVOKE(1, PARAMS1(arg), ARGS1(arg))
     @Override INVOKE(2, PARAMS2(arg1, arg2), ARGS2(arg1, arg2))
     @Override INVOKE(3, PARAMS3(arg1, arg2, arg3), ARGS3(arg1, arg2, arg3))
