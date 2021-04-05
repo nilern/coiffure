@@ -26,7 +26,7 @@ public final class Analyzer {
 
         protected ClosureEnv pushFn() { return new ClosureEnv(this); }
     }
-    
+
     private static abstract class MethodsEnv extends Env {
         protected MethodEnv pushMethod(final Iterable<Symbol> args) {
             return MethodEnv.create(this, new FrameDescriptor(), args);
@@ -182,7 +182,7 @@ public final class Analyzer {
                 return analyzeDot(locals, coll.next());
             } else if (coll.count() > 0) {
                 return analyzeCall(locals, coll.first(), coll.next());
-            } else{
+            } else {
                 throw new RuntimeException("TODO: analyze " + form);
             }
         } else if (form == null
@@ -306,23 +306,21 @@ public final class Analyzer {
         MethodNode variadicMethod = null;
         final ClosureEnv env = locals.pushFn();
 
-        {
-            for (int i = 0; args != null; args = args.next(), ++i) {
-                final MethodNode method = analyzeMethod(false, env, args.first());
+        for (int i = 0; args != null; args = args.next(), ++i) {
+            final MethodNode method = analyzeMethod(false, env, args.first());
 
-                if (method.isVariadic()) {
-                    if (variadicMethod == null) {
-                        variadicMethod = method;
-                    } else {
-                        throw new RuntimeException("Can't have more than 1 variadic overload");
-                    }
-                }
-
-                if (methods[method.getMinArity()] == null) {
-                    methods[method.getMinArity()] = method;
+            if (method.isVariadic()) {
+                if (variadicMethod == null) {
+                    variadicMethod = method;
                 } else {
-                    throw new RuntimeException("Can't have more than 1 overload with arity " + method.getMinArity());
+                    throw new RuntimeException("Can't have more than 1 variadic overload");
                 }
+            }
+
+            if (methods[method.getMinArity()] == null) {
+                methods[method.getMinArity()] = method;
+            } else {
+                throw new RuntimeException("Can't have more than 1 overload with arity " + method.getMinArity());
             }
         }
 
@@ -431,7 +429,7 @@ public final class Analyzer {
 
     private static Expr analyzeCall(final FrameEnv locals, final Object calleeForm, ISeq argForms) {
         final Expr callee = analyze(locals, calleeForm);
-        
+
         final List<Expr> args = new ArrayList<>();
         for (; argForms != null; argForms = argForms.next()) {
             args.add(analyze(locals, argForms.first()));
