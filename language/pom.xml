@@ -190,6 +190,7 @@
         <version>3.0.0</version>
         <executions>
           <execution>
+            <id>ClosureCPP</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>exec</goal>
@@ -202,18 +203,15 @@
                 <argument>-CC</argument>
                 <argument>${project.build.sourceDirectory}/com/deepbeginnings/coiffure/Closure.jpp</argument>
                 <argument>-o</argument>
-                <argument>${project.build.directory}/generated-sources/jpp/com/deepbeginnings/coiffure/Closure.java</argument>
+                <argument>
+                  ${project.build.directory}/generated-sources/jpp/com/deepbeginnings/coiffure/Closure.java
+                </argument>
               </arguments>
             </configuration>
           </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.0.0</version>
-        <executions>
+
           <execution>
+            <id>RestClosureCPP</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>exec</goal>
@@ -226,7 +224,9 @@
                 <argument>-CC</argument>
                 <argument>${project.build.sourceDirectory}/com/deepbeginnings/coiffure/RestClosure.jpp</argument>
                 <argument>-o</argument>
-                <argument>${project.build.directory}/generated-sources/jpp/com/deepbeginnings/coiffure/RestClosure.java</argument>
+                <argument>
+                  ${project.build.directory}/generated-sources/jpp/com/deepbeginnings/coiffure/RestClosure.java
+                </argument>
               </arguments>
             </configuration>
           </execution>
