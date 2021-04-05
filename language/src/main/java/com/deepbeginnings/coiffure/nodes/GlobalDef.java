@@ -4,7 +4,7 @@ import clojure.lang.Var;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public class GlobalDef extends Expr {
+public final class GlobalDef extends Expr {
     private final Var var;
     @Node.Child
     private Expr init;

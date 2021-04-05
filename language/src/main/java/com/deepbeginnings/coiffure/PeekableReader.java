@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 // FIXME: Implement rest of Reader properly
-public class PeekableReader extends FilterReader {
+public final class PeekableReader extends FilterReader {
     private boolean closed;
     private int lookahead;
     private boolean haveLookahead;

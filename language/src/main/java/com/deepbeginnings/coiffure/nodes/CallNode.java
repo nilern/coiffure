@@ -12,7 +12,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public class CallNode extends Expr {
+public final class CallNode extends Expr {
     @Child private Expr callee;
     @Children private Expr[] args;
     private final Method ifnInvoke;

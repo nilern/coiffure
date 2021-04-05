@@ -13,7 +13,7 @@ package com.deepbeginnings.coiffure;
 
 import clojure.lang.*;
 
-class Namespaces {
+final class Namespaces {
     private Namespaces() { throw new AssertionError(); } // "module" class; only static members
 
     private static final Symbol NS = Symbol.intern("ns");

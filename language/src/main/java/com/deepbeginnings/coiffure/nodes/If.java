@@ -3,7 +3,7 @@ package com.deepbeginnings.coiffure.nodes;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 
-public class If extends Expr {
+public final class If extends Expr {
     @Node.Child
     private Expr cond;
     @Node.Child
