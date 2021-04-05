@@ -42,11 +42,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.oracle</groupId>
-    <artifactId>simplelanguage-parent</artifactId>
-    <version>${graalvm.version}</version>
+    <groupId>com.deepbeginnings</groupId>
+    <artifactId>coiffure-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
   </parent>
-  <artifactId>simplelanguage</artifactId>
+  <artifactId>coiffure</artifactId>
   <profiles>
     <profile>
       <id>jdk11-graalvm</id>
@@ -124,7 +124,7 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <finalName>simplelanguage</finalName>
+              <finalName>coiffure</finalName>
               <artifactSet>
                 <excludes>
                   <exclude>junit:junit</exclude>

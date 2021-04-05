@@ -40,6 +40,8 @@
 # SOFTWARE.
 #
 
+COIFFURE_VERSION="0.1.0-SNAPSHOT"
+
 # If you update this number make sure the graalvm.version value in ./pom.xml matches
 VERSION="21.0.0.2"
 
@@ -79,8 +81,8 @@ if [[ "$GRAALVM_VERSION" != "" ]]; then
     JAVACMD="$SCRIPT_HOME/java"
     versionCheck "Installed in wrong version of GraalVM. Expected: $VERSION, found $GRAALVM_VERSION"
 else
-    LANGUAGE_PATH="$SCRIPT_HOME/language/target/simplelanguage.jar"
-    LAUNCHER_PATH="$SCRIPT_HOME/launcher/target/launcher-$VERSION.jar"
+    LANGUAGE_PATH="$SCRIPT_HOME/language/target/coiffure.jar"
+    LAUNCHER_PATH="$SCRIPT_HOME/launcher/target/launcher-$COIFFURE_VERSION.jar"
     # Check the GraalVM version in JAVA_HOME
     if [[ "$JAVA_HOME" != "" ]]; then
         GRAALVM_VERSION=$(extractGraalVMVersion "$JAVA_HOME"/release)
