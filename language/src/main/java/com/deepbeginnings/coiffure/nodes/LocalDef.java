@@ -14,7 +14,7 @@ public abstract class LocalDef extends Expr {
     protected abstract FrameSlot getSlot();
 
     @Specialization
-    protected Object write(VirtualFrame frame, Object value) {
+    protected Object write(final VirtualFrame frame, final Object value) {
         frame.getFrameDescriptor().setFrameSlotKind(getSlot(), FrameSlotKind.Object);
 
         frame.setObject(getSlot(), value);

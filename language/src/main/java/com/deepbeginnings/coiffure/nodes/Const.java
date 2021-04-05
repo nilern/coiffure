@@ -5,8 +5,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 public final class Const extends Expr {
     private final Object value;
 
-    public Const(Object value) { this.value = value; }
+    public Const(final Object value) { this.value = value; }
 
     @Override
-    public Object execute(VirtualFrame frame) { return this.value; }
+    public Object execute(final VirtualFrame frame) { return this.value; }
 }

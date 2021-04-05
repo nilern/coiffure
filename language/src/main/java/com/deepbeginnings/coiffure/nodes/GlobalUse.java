@@ -11,8 +11,8 @@ public abstract class GlobalUse extends Expr {
     protected abstract Var getVar();
 
     @Specialization
-    protected Object readObject(VirtualFrame frame) {
-        Var var = getVar();
+    protected Object readObject(final VirtualFrame frame) {
+        final Var var = getVar();
         return var.isDynamic() ? var.get() : var.getRawRoot();
     }
 }

@@ -2,22 +2,20 @@ package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.Var;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.Node;
 
 public final class GlobalDef extends Expr {
     private final Var var;
-    @Node.Child
-    private Expr init;
+    @Child private Expr init;
     
-    public static Expr create(Var var, Expr init) { return new GlobalDef(var, init); }
+    public static Expr create(final Var var, final Expr init) { return new GlobalDef(var, init); }
 
-    private GlobalDef(Var var, Expr init) {
+    private GlobalDef(final Var var, final Expr init) {
         this.var = var;
         this.init = init;
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public Object execute(final VirtualFrame frame) {
         var.bindRoot(init.execute(frame));
         return null;
     }
