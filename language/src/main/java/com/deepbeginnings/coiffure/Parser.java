@@ -7,17 +7,17 @@ import java.util.ArrayList;
 import java.util.ListIterator;
 
 final class Parser {
+    private final PeekableReader input;
+
     public static final Object EOF = new Object();
 
     private static final Symbol VAR = Symbol.intern("var");
 
-    public static Object read(PeekableReader input) throws IOException { return new Parser(input).read(); }
+    public static Object read(final PeekableReader input) throws IOException { return new Parser(input).read(); }
 
-    public static Object tryRead(PeekableReader input) throws IOException { return new Parser(input).tryRead(); }
+    public static Object tryRead(final PeekableReader input) throws IOException { return new Parser(input).tryRead(); }
 
-    private final PeekableReader input;
-
-    private Parser(PeekableReader input) { this.input = input; }
+    private Parser(final PeekableReader input) { this.input = input; }
 
     private Object read() throws IOException {
         final Object form = tryRead();
@@ -78,7 +78,7 @@ final class Parser {
 
     private String readIdentifier() throws IOException {
         if (isSymbolStart(input.peek())) {
-            StringBuilder cs = new StringBuilder();
+            final StringBuilder cs = new StringBuilder();
             cs.append((char) input.read());
 
             while (isSymbolPart(input.peek())) { cs.append((char) input.read()); }
@@ -89,16 +89,16 @@ final class Parser {
         }
     }
 
-    private static boolean isSymbolStart(int c) { return isSymbolPart(c) && !Character.isDigit(c); }
+    private static boolean isSymbolStart(final int c) { return isSymbolPart(c) && !Character.isDigit(c); }
 
-    private static boolean isSymbolPart(int c) {
+    private static boolean isSymbolPart(final int c) {
         return c != -1
                 && !Character.isWhitespace(c)
                 && "()[]#".indexOf(c) == -1;
     }
 
     private IPersistentCollection readList() throws IOException {
-        ArrayList<Object> forms = new ArrayList<>();
+        final ArrayList<Object> forms = new ArrayList<>();
 
         input.read(); // discard '('
         while (true) {

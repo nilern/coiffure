@@ -10,7 +10,7 @@ public final class PeekableReader extends FilterReader {
     private int lookahead;
     private boolean haveLookahead;
 
-    public PeekableReader(Reader in) {
+    public PeekableReader(final Reader in) {
         super(in);
         this.closed = false;
         this.lookahead = 0;
