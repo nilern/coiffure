@@ -208,6 +208,30 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>cpp</executable>
+              <arguments>
+                <argument>-std=c99</argument>
+                <argument>-P</argument>
+                <argument>-CC</argument>
+                <argument>${project.build.sourceDirectory}/com/deepbeginnings/coiffure/RestClosure.jpp</argument>
+                <argument>-o</argument>
+                <argument>${project.build.directory}/generated-sources/jpp/com/deepbeginnings/coiffure/RestClosure.java</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>

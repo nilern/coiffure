@@ -5,30 +5,18 @@ import clojure.lang.Util;
 
 import com.oracle.truffle.api.Truffle;
 
-#define PARAM(param) Object param
-#define PARAMS0()
-#define PARAMS1(param) PARAM(param)
-#define PARAMS2(param, ...) PARAM(param), PARAMS1(__VA_ARGS__)
-#define PARAMS3(param, ...) PARAM(param), PARAMS2(__VA_ARGS__)
-#define PARAMS4(param, ...) PARAM(param), PARAMS3(__VA_ARGS__)
-
-#define ARG(arg) Util.ret1(arg, arg = null)
-#define ARGS0()
-#define ARGS1(arg) , ARG(arg)
-#define ARGS2(arg, ...) , ARG(arg) ARGS1(__VA_ARGS__)
-#define ARGS3(arg, ...) , ARG(arg) ARGS2(__VA_ARGS__)
-#define ARGS4(arg, ...) , ARG(arg) ARGS3(__VA_ARGS__)
+#include "InvokeArgs.h"
 
 #define INVOKE(argc, params, args) \
     public Object invoke(params) { \
-            final MethodNode method = methods[argc]; \
-            if (method != null) { \
-                return Truffle.getRuntime().createCallTarget(method) \
-                        .call(this args); \
-            } else { \
-                return throwArity(argc); \
-            } \
-        }
+        final MethodNode method = methods[argc]; \
+        if (method != null) { \
+            return Truffle.getRuntime().createCallTarget(method) \
+                    .call(this args); \
+        } else { \
+            return throwArity(argc); \
+        } \
+    }
 
 public class Closure extends AFunction implements IClosure {
     private final MethodNode[] methods;

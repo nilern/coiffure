@@ -1,0 +1,59 @@
+package com.deepbeginnings.coiffure;
+
+import clojure.lang.RestFn;
+import clojure.lang.Util;
+
+import com.oracle.truffle.api.Truffle;
+
+#include "InvokeArgs.h"
+
+#define INVOKE(argc, params, args) \
+    public Object invoke(params) { \
+        final MethodNode method = methods[argc]; \
+        if (method != null) { \
+            if (method != variadicMethod) { \
+                return Truffle.getRuntime().createCallTarget(method) \
+                        .call(this args); \
+            } else { \
+                return super.invoke(); \
+            } \
+        } else { \
+            return throwArity(argc); \
+        } \
+    }
+
+#define DO_INVOKE(argc, params, args) \
+    protected Object doInvoke(params) { \
+        return Truffle.getRuntime().createCallTarget(methods[argc]) \
+                .call(this args); \
+    }
+
+public class RestClosure extends RestFn implements IClosure {
+    private final MethodNode[] methods;
+    private final MethodNode variadicMethod;
+    private final Object[] clovers; // OPTIMIZE: RestClosure extends DynamicObject?
+
+    public RestClosure(final MethodNode[] methods, final MethodNode variadicMethod, final Object[] clovers) {
+        this.methods = methods;
+        this.variadicMethod = variadicMethod;
+        this.clovers = clovers;
+    }
+
+    @Override
+    public Object clover(final int index) { return clovers[index]; }
+
+    @Override INVOKE(0, PARAMS0(), ARGS0())
+    @Override INVOKE(1, PARAMS1(arg), ARGS1(arg))
+    @Override INVOKE(2, PARAMS2(arg1, arg2), ARGS2(arg1, arg2))
+    @Override INVOKE(3, PARAMS3(arg1, arg2, arg3), ARGS3(arg1, arg2, arg3))
+    @Override INVOKE(4, PARAMS4(arg1, arg2, arg3, arg4), ARGS4(arg1, arg2, arg3, arg4))
+
+    @Override
+    public int getRequiredArity() { return variadicMethod.minArity; }
+
+    @Override DO_INVOKE(0, PARAMS1(args), ARGS1(args))
+    @Override DO_INVOKE(1, PARAMS2(arg, args), ARGS2(arg, args))
+    @Override DO_INVOKE(2, PARAMS3(arg1, arg2, args), ARGS3(arg1, arg2, args))
+    @Override DO_INVOKE(3, PARAMS4(arg1, arg2, arg3, args), ARGS4(arg1, arg2, arg3, args))
+    @Override DO_INVOKE(4, PARAMS5(arg1, arg2, arg3, arg4, args), ARGS5(arg1, arg2, arg3, arg4, args))
+}
