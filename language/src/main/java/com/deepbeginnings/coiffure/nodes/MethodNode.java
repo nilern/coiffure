@@ -1,10 +1,11 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
+import com.deepbeginnings.coiffure.Language;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 
-final class MethodNode extends RootNode {
-    final int minArity;
-    final boolean isVariadic;
+public final class MethodNode extends RootNode {
+    private final int minArity;
+    private final boolean isVariadic;
 
     public MethodNode(final Language lang, final FrameDescriptor locals, final int minArity, final boolean isVariadic,
                       final Expr body
@@ -13,4 +14,8 @@ final class MethodNode extends RootNode {
         this.minArity = minArity;
         this.isVariadic = isVariadic;
     }
+
+    public int getMinArity() { return minArity; }
+
+    public boolean isVariadic() { return isVariadic; }
 }

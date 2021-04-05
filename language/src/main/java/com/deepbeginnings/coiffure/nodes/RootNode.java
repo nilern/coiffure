@@ -1,5 +1,7 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
+import com.deepbeginnings.coiffure.Language;
+import com.deepbeginnings.coiffure.nodes.Expr;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 

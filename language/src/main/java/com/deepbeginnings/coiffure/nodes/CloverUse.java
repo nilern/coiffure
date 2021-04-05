@@ -1,5 +1,6 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
+import com.deepbeginnings.coiffure.IClosure;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -8,7 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 @NodeField(name = "slot", type = FrameSlot.class)
 @NodeField(name = "index", type = Integer.class)
-abstract class CloverUse extends Expr {
+public abstract class CloverUse extends Expr {
     protected abstract FrameSlot getSlot();
 
     protected abstract int getIndex();

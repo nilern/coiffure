@@ -5,6 +5,8 @@ import clojure.lang.Util;
 
 import com.oracle.truffle.api.Truffle;
 
+import com.deepbeginnings.coiffure.nodes.MethodNode;
+
 #include "InvokeArgs.h"
 
 #define INVOKE(argc, params, args) \
@@ -49,7 +51,7 @@ public class RestClosure extends RestFn implements IClosure {
     @Override INVOKE(4, PARAMS4(arg1, arg2, arg3, arg4), ARGS4(arg1, arg2, arg3, arg4))
 
     @Override
-    public int getRequiredArity() { return variadicMethod.minArity; }
+    public int getRequiredArity() { return variadicMethod.getMinArity(); }
 
     @Override DO_INVOKE(0, PARAMS1(args), ARGS1(args))
     @Override DO_INVOKE(1, PARAMS2(arg, args), ARGS2(arg, args))

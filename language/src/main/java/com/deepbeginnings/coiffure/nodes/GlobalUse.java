@@ -1,4 +1,4 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.Var;
 

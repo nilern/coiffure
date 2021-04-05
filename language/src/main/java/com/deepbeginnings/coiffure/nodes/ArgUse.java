@@ -1,8 +1,8 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
-final class ArgUse extends Expr {
+public final class ArgUse extends Expr {
     final int index;
     
     public ArgUse(final int index) { this.index = index; }

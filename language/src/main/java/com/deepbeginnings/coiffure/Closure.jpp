@@ -5,6 +5,8 @@ import clojure.lang.Util;
 
 import com.oracle.truffle.api.Truffle;
 
+import com.deepbeginnings.coiffure.nodes.MethodNode;
+
 #include "InvokeArgs.h"
 
 #define INVOKE(argc, params, args) \

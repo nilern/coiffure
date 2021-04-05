@@ -1,5 +1,6 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
+import com.deepbeginnings.coiffure.nodes.Expr;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -9,7 +10,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 @NodeField(name = "slot", type = FrameSlot.class)
 @NodeChild(value = "expr", type = Expr.class)
-abstract class LocalDef extends Expr {
+public abstract class LocalDef extends Expr {
     protected abstract FrameSlot getSlot();
 
     @Specialization

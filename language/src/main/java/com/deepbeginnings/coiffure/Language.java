@@ -2,6 +2,7 @@ package com.deepbeginnings.coiffure;
 
 import clojure.lang.*;
 
+import com.deepbeginnings.coiffure.nodes.MethodNode;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;

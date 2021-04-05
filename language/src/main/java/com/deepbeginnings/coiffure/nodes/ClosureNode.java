@@ -1,9 +1,11 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
+import com.deepbeginnings.coiffure.Closure;
+import com.deepbeginnings.coiffure.RestClosure;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
-final class ClosureNode extends Expr {
+public final class ClosureNode extends Expr {
     @Children private MethodNode[] methods;
     private final MethodNode variadicMethod;
     @Children private Expr[] closings;

@@ -1,10 +1,10 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.BlockNode;
 import com.oracle.truffle.api.nodes.Node;
 
-final class Do extends Expr implements BlockNode.ElementExecutor<Expr> {
+public final class Do extends Expr implements BlockNode.ElementExecutor<Expr> {
     @Node.Child
     private BlockNode<Expr> block;
 

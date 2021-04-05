@@ -1,11 +1,11 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.Reflector;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 
-final class New extends Expr {
+public final class New extends Expr {
     private final Class<?> klass;
     @Node.Children private Expr[] args;
     

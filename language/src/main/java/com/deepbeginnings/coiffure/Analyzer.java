@@ -2,12 +2,13 @@ package com.deepbeginnings.coiffure;
 
 import clojure.lang.*;
 
+import com.deepbeginnings.coiffure.nodes.*;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
 import java.util.*;
 
-final class Analyzer {
+public final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
@@ -18,7 +19,7 @@ final class Analyzer {
     private static final Symbol DOT = Symbol.intern(".");
     private static final Symbol _AMP_ = Symbol.intern("&");
 
-    static final int MAX_POSITIONAL_ARITY = 20;
+    public static final int MAX_POSITIONAL_ARITY = 20;
 
     private static abstract class Env {
         protected abstract Expr get(Symbol name);
@@ -309,7 +310,7 @@ final class Analyzer {
             for (int i = 0; args != null; args = args.next(), ++i) {
                 final MethodNode method = analyzeMethod(false, env, args.first());
 
-                if (method.isVariadic) {
+                if (method.isVariadic()) {
                     if (variadicMethod == null) {
                         variadicMethod = method;
                     } else {
@@ -317,10 +318,10 @@ final class Analyzer {
                     }
                 }
 
-                if (methods[method.minArity] == null) {
-                    methods[method.minArity] = method;
+                if (methods[method.getMinArity()] == null) {
+                    methods[method.getMinArity()] = method;
                 } else {
-                    throw new RuntimeException("Can't have more than 1 overload with arity " + method.minArity);
+                    throw new RuntimeException("Can't have more than 1 overload with arity " + method.getMinArity());
                 }
             }
         }

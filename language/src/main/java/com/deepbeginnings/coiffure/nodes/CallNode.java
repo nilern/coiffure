@@ -1,8 +1,9 @@
-package com.deepbeginnings.coiffure;
+package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.IFn;
 import clojure.lang.Util;
 
+import com.deepbeginnings.coiffure.Analyzer;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
