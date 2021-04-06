@@ -12,6 +12,8 @@ public final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol LETS = Symbol.intern("let*");
+    private static final Symbol LOOP = Symbol.intern("loop");
+    private static final Symbol RECUR = Symbol.intern("recur");
     private static final Symbol FNS = Symbol.intern("fn*");
     private static final Symbol DEF = Symbol.intern("def");
     private static final Symbol VAR = Symbol.intern("var");
@@ -20,6 +22,8 @@ public final class Analyzer {
     private static final Symbol _AMP_ = Symbol.intern("&");
 
     public static final int MAX_POSITIONAL_ARITY = 20;
+
+    // # Env
 
     private static abstract class Env {
         protected abstract Expr get(Symbol name);
@@ -96,27 +100,32 @@ public final class Analyzer {
         private final Env parent;
         private final FrameDescriptor frameDescriptor;
         private int localsCount;
+        private final List<FrameSlot> paramSlots;
 
         private static MethodEnv create(final Env parent, final FrameDescriptor frameDescriptor,
                                         final Iterable<Symbol> args
         ) {
             ITransientMap namedSlots = PersistentHashMap.EMPTY.asTransient();
             int localsCount = 0;
+            final List<FrameSlot> paramSlots = new ArrayList<>();
 
             for (final Symbol arg : args) {
-                namedSlots = namedSlots.assoc(arg, frameDescriptor.findOrAddFrameSlot(localsCount++));
+                final FrameSlot slot = frameDescriptor.findOrAddFrameSlot(localsCount++);
+                namedSlots = namedSlots.assoc(arg, slot);
+                paramSlots.add(slot);
             }
 
-            return new MethodEnv(namedSlots.persistent(), parent, frameDescriptor, localsCount);
+            return new MethodEnv(namedSlots.persistent(), parent, frameDescriptor, localsCount, paramSlots);
         }
 
         private MethodEnv(final IPersistentMap namedSlots, final Env parent,
-                          final FrameDescriptor frameDescriptor, final int localsCount
+                          final FrameDescriptor frameDescriptor, final int localsCount, final List<FrameSlot> paramSlots
         ) {
             super(namedSlots);
             this.parent = parent;
             this.frameDescriptor = frameDescriptor;
             this.localsCount = localsCount;
+            this.paramSlots = paramSlots;
         }
 
         @Override
@@ -129,6 +138,8 @@ public final class Analyzer {
         protected MethodEnv getFrameRoot() { return this; }
 
         private FrameSlot addSlot() { return frameDescriptor.addFrameSlot(localsCount++); }
+
+        protected List<FrameSlot> paramSlots() { return paramSlots; }
     }
 
     private static final class NestedEnv extends FrameEnv {
@@ -154,22 +165,41 @@ public final class Analyzer {
         private FrameSlot topSlot() { return slot; }
     }
 
+    // # Context
+
+    private static abstract class Context {
+        protected static final Context NONTAIL = new NonTail();
+
+        protected static Tail tail(final List<FrameSlot> params) { return new Tail(params); }
+
+        private static final class NonTail extends Context {}
+
+        private static final class Tail extends Context {
+            public final List<FrameSlot> params;
+            public boolean recurred;
+
+            private Tail(final List<FrameSlot> params) { this.params = params; }
+        }
+    }
+
+    // # Analysis
+
     public static MethodNode analyzeToplevel(final ISeq form) {
         return analyzeMethod(true, new ToplevelEnv(), form);
     }
 
-    private static Expr analyze(final FrameEnv locals, final Object form) {
+    private static Expr analyze(final FrameEnv locals, final Context ctx, final Object form) {
         if (form instanceof Symbol) {
             return analyzeSymbol(locals, (Symbol) form);
         } else if (form instanceof ISeq) {
             final ISeq coll = (ISeq) form;
 
             if (Util.equiv(coll.first(), DO)) {
-                return analyzeDo(locals, coll.next());
+                return analyzeDo(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), IF)) {
-                return analyzeIf(locals, coll.next());
+                return analyzeIf(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), LETS)) {
-                return analyzeLet(locals, coll.next());
+                return analyzeLet(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), FNS)) {
                 return analyzeFn(locals, coll.next());
             } else if (Util.equiv(coll.first(), DEF)) {
@@ -180,6 +210,10 @@ public final class Analyzer {
                 return analyzeNew(locals, coll.next());
             } else if (Util.equiv(coll.first(), DOT)) {
                 return analyzeDot(locals, coll.next());
+            } else if (Util.equiv(coll.first(), LOOP)) {
+                return analyzeLoop(locals, coll.next());
+            } else if (Util.equiv(coll.first(), RECUR)) {
+                return analyzeRecur(locals, ctx, coll.next());
             } else if (coll.count() > 0) {
                 return analyzeCall(locals, coll.first(), coll.next());
             } else {
@@ -233,33 +267,37 @@ public final class Analyzer {
         }
     }
 
-    private static Expr analyzeDo(final FrameEnv locals, ISeq args) {
+    private static Expr analyzeDo(final FrameEnv locals, final Context ctx, ISeq args) {
         final ArrayList<Expr> stmts = new ArrayList<>();
 
-        for (; args != null; args = args.next()) {
-            stmts.add(analyze(locals, args.first()));
+        while (args != null) {
+            final Object stmt = args.first();
+            args = args.next();
+
+            final Context stmtCtx = (args != null) ? Context.NONTAIL : ctx;
+            stmts.add(analyze(locals, stmtCtx, stmt));
         }
 
         return Do.create(stmts.toArray(new Expr[0]));
     }
 
-    private static Expr analyzeIf(final FrameEnv locals, ISeq args) {
+    private static Expr analyzeIf(final FrameEnv locals, final Context ctx, ISeq args) {
         if (args != null) {
-            final Object cond = args.first();
+            final Expr cond = analyze(locals, Context.NONTAIL, args.first());
 
             if ((args = args.next()) != null) {
-                final Object conseq = args.first();
+                final Expr conseq = analyze(locals, ctx, args.first());
 
                 if ((args = args.next()) != null) {
-                    final Object alt = args.first();
+                    final Expr alt = analyze(locals, ctx, args.first());
 
                     if (args.next() == null) {
-                        return new If(analyze(locals, cond), analyze(locals, conseq), analyze(locals, alt));
+                        return new If(cond, conseq, alt);
                     } else {
                         throw new RuntimeException("Too many arguments to if");
                     }
                 } else {
-                    return new If(analyze(locals, cond), analyze(locals, conseq), new Const(null));
+                    return new If(cond, conseq, new Const(null));
                 }
             }
         }
@@ -267,11 +305,12 @@ public final class Analyzer {
         throw new RuntimeException("Too few arguments to if");
     }
 
-    private static Expr analyzeLet(FrameEnv locals, final ISeq args) {
+    private static Expr analyzeLet(FrameEnv locals, final Context ctx, final ISeq args) {
         if (args != null) {
             final Object bindingsForm = args.first();
             if (bindingsForm instanceof IPersistentVector) {
                 final IPersistentVector bindings = (IPersistentVector) bindingsForm;
+
                 final ArrayList<Expr> stmts = new ArrayList<>();
 
                 for (int i = 0; i < bindings.count(); ++i) {
@@ -279,7 +318,7 @@ public final class Analyzer {
                     if (binder instanceof Symbol) {
                         ++i;
                         if (i < bindings.count()) {
-                            final Expr expr = analyze(locals, bindings.nth(i));
+                            final Expr expr = analyze(locals, Context.NONTAIL, bindings.nth(i));
                             final NestedEnv locals_ = locals.push((Symbol) binder);
                             locals = locals_;
                             stmts.add(LocalDefNodeGen.create(expr, locals_.topSlot()));
@@ -291,13 +330,93 @@ public final class Analyzer {
                     }
                 }
 
-                stmts.add(analyzeDo(locals, args.next())); // OPTIMIZE: Unnest Do:s
+                stmts.add(analyzeDo(locals, ctx, args.next())); // OPTIMIZE: Unnest Do:s
                 return Do.create(stmts.toArray(new Expr[0]));
             } else {
                 throw new RuntimeException("Bad binding form, expected vector");
             }
         } else {
             throw new RuntimeException("let* missing bindings");
+        }
+    }
+
+    // TODO: Factor out bindings part in common with `let*`:
+    private static Expr analyzeLoop(FrameEnv locals, final ISeq args) {
+        if (args != null) {
+            final Object bindingsForm = args.first();
+            if (bindingsForm instanceof IPersistentVector) {
+                final IPersistentVector bindings = (IPersistentVector) bindingsForm;
+
+                final List<FrameSlot> paramSlots = new ArrayList<>();
+                final ArrayList<Expr> stmts = new ArrayList<>();
+
+                for (int i = 0; i < bindings.count(); ++i) {
+                    final Object binder = bindings.nth(i);
+                    if (binder instanceof Symbol) {
+                        ++i;
+                        if (i < bindings.count()) {
+                            final Expr expr = analyze(locals, Context.NONTAIL, bindings.nth(i));
+                            final NestedEnv locals_ = locals.push((Symbol) binder);
+                            locals = locals_;
+                            final FrameSlot slot = locals_.topSlot();
+                            paramSlots.add(slot);
+                            stmts.add(LocalDefNodeGen.create(expr, slot));
+                        } else {
+                            throw new RuntimeException("Binder " + binder + " missing value expression");
+                        }
+                    } else {
+                        throw new RuntimeException("Bad binding form, expected symbol, got: " + binder);
+                    }
+                }
+
+                final Context.Tail ctx = Context.tail(paramSlots);
+                final Expr body = analyzeDo(locals, ctx, args.next());
+                if (ctx.recurred) {
+                    stmts.add(new Loop(body));
+                } else {
+                    // TODO: Warn about non-recursing `loop`?
+                    stmts.add(body); // OPTIMIZE: Unnest Do:s
+                }
+                return Do.create(stmts.toArray(new Expr[0]));
+            } else {
+                throw new RuntimeException("Bad binding form, expected vector");
+            }
+        } else {
+            throw new RuntimeException("let* missing bindings");
+        }
+    }
+
+    private static Expr analyzeRecur(final FrameEnv env, final Context ctx, ISeq argsForm) {
+        if (ctx instanceof Context.Tail) {
+            final Context.Tail tailCtx = (Context.Tail) ctx;
+
+            final List<Expr> argDefs = new ArrayList<>();
+            int argc = 0;
+            for (final Iterator<FrameSlot> slotsIt = tailCtx.params.iterator();
+                 slotsIt.hasNext(); argsForm = argsForm.next()
+            ) {
+                if (argsForm != null) {
+                    ++argc;
+                    final Expr arg = analyze(env, Context.NONTAIL, argsForm.first());
+                    final FrameSlot slot = slotsIt.next();
+                    argDefs.add(LocalDefNodeGen.create(arg, slot));
+                } else {
+                    throw new IllegalArgumentException(
+                            String.format("Mismatched argument count to recur, expected: %d args, got: %d",
+                                    tailCtx.params.size(), argc));
+                }
+            }
+
+            if (argsForm == null) {
+                tailCtx.recurred = true;
+                return new Recur(argDefs.toArray(new Expr[0]));
+            } else {
+                throw new IllegalArgumentException(
+                        String.format("Mismatched argument count to recur, expected: %d args, got: %d",
+                                tailCtx.params.size(), argc));
+            }
+        } else {
+            throw new UnsupportedOperationException("Can only recur from tail position");
         }
     }
 
@@ -415,7 +534,17 @@ public final class Analyzer {
                         ++i;
                     }
                 }
-                stmts.add(analyzeDo(locals, bodySeq)); // OPTIMIZE: Unnest Do:s
+
+                // TODO: Merge with similar code in `analyzeLoop`:
+                List<FrameSlot> paramSlots = locals.paramSlots();
+                if (!isStatic) { paramSlots = paramSlots.subList(1, paramSlots.size()); }
+                final Context.Tail ctx = Context.tail(paramSlots);
+                final Expr body = analyzeDo(locals, ctx, bodySeq);
+                if (ctx.recurred) {
+                    stmts.add(new Loop(body));
+                } else {
+                    stmts.add(body); // OPTIMIZE: Unnest Do:s
+                }
 
                 return new MethodNode(Language.getCurrentLanguage(), locals.frameDescriptor, minArity, isVariadic,
                         Do.create(stmts.toArray(new Expr[0])));
@@ -428,11 +557,11 @@ public final class Analyzer {
     }
 
     private static Expr analyzeCall(final FrameEnv locals, final Object calleeForm, ISeq argForms) {
-        final Expr callee = analyze(locals, calleeForm);
+        final Expr callee = analyze(locals, Context.NONTAIL, calleeForm);
 
         final List<Expr> args = new ArrayList<>();
         for (; argForms != null; argForms = argForms.next()) {
-            args.add(analyze(locals, argForms.first()));
+            args.add(analyze(locals, Context.NONTAIL, argForms.first()));
         }
 
         return CallNode.create(callee, args.toArray(new Expr[0]));
@@ -451,7 +580,7 @@ public final class Analyzer {
 
                         final Var var = Namespaces.lookupVar(name, true);
                         if (var != null) {
-                            return GlobalDef.create(var, analyze(locals, init));
+                            return GlobalDef.create(var, analyze(locals, Context.NONTAIL, init));
                         } else {
                             throw new RuntimeException("Can't def a non-pre-existing qualified var");
                         }
@@ -479,7 +608,7 @@ public final class Analyzer {
 
             final ArrayList<Expr> args = new ArrayList<>();
             while ((argForms = argForms.next()) != null) {
-                args.add(analyze(locals, argForms.first()));
+                args.add(analyze(locals, Context.NONTAIL, argForms.first()));
             }
 
             return New.create(klass, args.toArray(new Expr[0]));
@@ -490,7 +619,7 @@ public final class Analyzer {
 
     private static Expr analyzeDot(final FrameEnv locals, ISeq argForms) {
         if (argForms != null) {
-            final Expr receiver = analyze(locals, argForms.first());
+            final Expr receiver = analyze(locals, Context.NONTAIL, argForms.first());
 
             if ((argForms = argForms.next()) != null) {
                 final Object msgForm = argForms.first();
@@ -500,7 +629,7 @@ public final class Analyzer {
 
                     final List<Expr> args = new ArrayList<>();
                     while ((argForms = argForms.next()) != null) {
-                        args.add(analyze(locals, argForms.first()));
+                        args.add(analyze(locals, Context.NONTAIL, argForms.first()));
                     }
 
                     return InvokeInstance.create(receiver, methodName, args.toArray(new Expr[0]));
