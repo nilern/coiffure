@@ -239,6 +239,8 @@ public final class Analyzer {
             final Object v = Namespaces.resolve(name);
             if (v instanceof Var) {
                 return GlobalUseNodeGen.create((Var) v);
+            } else if (v instanceof Class) {
+                return new Const(v);
             } else {
                 throw new AssertionError("TODO");
             }
