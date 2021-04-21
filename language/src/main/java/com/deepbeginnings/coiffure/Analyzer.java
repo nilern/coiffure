@@ -232,18 +232,31 @@ public final class Analyzer {
     }
 
     private static Expr analyzeSymbol(final FrameEnv locals, final Symbol name) {
+        // Local?:
         final Expr expr = locals.get(name);
         if (expr != null) {
             return expr;
-        } else {
-            final Object v = Namespaces.resolve(name);
-            if (v instanceof Var) {
-                return GlobalUseNodeGen.create((Var) v);
-            } else if (v instanceof Class) {
-                return new Const(v);
-            } else {
-                throw new AssertionError("TODO");
+        }
+
+        // Static field?:
+        final String ns = name.getNamespace();
+        if (ns != null) {
+            final Class<?> klass = Namespaces.maybeClass(Symbol.intern(ns), false);
+            if (klass != null) {
+                return GetStatic.create(klass, name.getName())
+                        .orElseThrow(() -> new RuntimeException(
+                                "Unable to find static field: " + name.getName() + " in " + klass
+                        ));
             }
+        }
+
+        final Object v = Namespaces.resolve(name);
+        if (v instanceof Var) { // Global
+            return GlobalUseNodeGen.create((Var) v);
+        } else if (v instanceof Class) { // Class as value
+            return new Const(v);
+        } else {
+            throw new AssertionError("TODO");
         }
     }
 

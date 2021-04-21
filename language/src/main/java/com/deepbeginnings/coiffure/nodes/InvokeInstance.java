@@ -29,6 +29,6 @@ public final class InvokeInstance extends Expr {
             argVals[i] = args[i].execute(frame);
         }
 
-        return Reflector.invokeInstanceMethod(recVal, methodName, argVals);
+        return Reflector.invokeInstanceMethod(recVal, methodName, argVals); // OPTIMIZE
     }
 }
