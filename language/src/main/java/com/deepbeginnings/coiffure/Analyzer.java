@@ -16,6 +16,7 @@ public final class Analyzer {
     private static final Symbol RECUR = Symbol.intern("recur");
     private static final Symbol FNS = Symbol.intern("fn*");
     private static final Symbol DEF = Symbol.intern("def");
+    private static final Symbol SET_BANG_ = Symbol.intern("set!");
     private static final Symbol VAR = Symbol.intern("var");
     private static final Symbol NEW = Symbol.intern("new");
     private static final Symbol DOT = Symbol.intern(".");
@@ -214,6 +215,8 @@ public final class Analyzer {
                 return analyzeLoop(locals, coll.next());
             } else if (Util.equiv(coll.first(), RECUR)) {
                 return analyzeRecur(locals, ctx, coll.next());
+            } else if (Util.equiv(coll.first(), SET_BANG_)) {
+                return analyzeAssign(locals, coll.next());
             } else if (coll.count() > 0) {
                 return analyzeCall(locals, coll.first(), coll.next());
             } else {
@@ -226,7 +229,6 @@ public final class Analyzer {
         } else {
             throw new RuntimeException("TODO: analyze " + form);
         }
-
     }
 
     private static Expr analyzeSymbol(final FrameEnv locals, final Symbol name) {
@@ -595,6 +597,54 @@ public final class Analyzer {
             }
         } else {
             throw new RuntimeException("Too few arguments to def");
+        }
+    }
+
+    private static Expr analyzeAssign(final FrameEnv locals, ISeq argForms) {
+        if (argForms != null) {
+            final Object lvalue = argForms.first();
+
+            if ((argForms = argForms.next()) != null) {
+                final Object rvalue = argForms.first();
+
+                if (argForms.next() == null) {
+                    return analyzeLRValues(locals, lvalue, rvalue);
+                } else {
+                    throw new RuntimeException("Too many arguments to set!");
+                }
+            }
+        }
+
+        throw new RuntimeException("Too few arguments to set!");
+    }
+
+    private static Expr analyzeLRValues(final FrameEnv locals, final Object lForm, final Object rForm) {
+        if (lForm instanceof Symbol) {
+            return analyzeSymbolLRValues(locals, (Symbol) lForm, rForm);
+        } else if (lForm instanceof ISeq) {
+            final ISeq lColl = (ISeq) lForm;
+
+            if (Util.equiv(lColl.first(), DOT)) {
+                throw new AssertionError("TODO");
+            } else {
+                throw new RuntimeException("TODO: analyzeLRValues " + lForm);
+            }
+        } else {
+            throw new RuntimeException("Invalid assignment target");
+        }
+    }
+
+    private static Expr analyzeSymbolLRValues(final FrameEnv locals, final Symbol name, final Object rForm) {
+        final Expr expr = locals.get(name);
+        if (expr == null) {
+            final Object v = Namespaces.resolve(name);
+            if (v instanceof Var) {
+                return new GlobalSet((Var) v, analyze(locals, Context.NONTAIL, rForm));
+            } else {
+                throw new AssertionError("TODO");
+            }
+        } else {
+            throw new RuntimeException("Can't set! a local variable: " + name);
         }
     }
 
