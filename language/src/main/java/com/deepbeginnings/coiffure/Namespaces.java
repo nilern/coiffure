@@ -19,13 +19,13 @@ final class Namespaces {
     private static final Symbol NS = Symbol.intern("ns");
     private static final Symbol IN_NS = Symbol.intern("in-ns");
     private static final Namespace CLOJURE_NS = Namespace.findOrCreate(Symbol.intern("clojure.core"));
-    private static final Var IN_NS_VAR = Var.intern(CLOJURE_NS, NS, false);
-    private static final Var NS_VAR = Var.intern(CLOJURE_NS, IN_NS, false);
+    private static final Var NS_VAR = Var.intern(CLOJURE_NS, NS, null, false);
+    private static final Var IN_NS_VAR = Var.intern(CLOJURE_NS, IN_NS, null, false);
     private final static Var ALLOW_UNRESOLVED_VARS =
             Var.intern(CLOJURE_NS, Symbol.intern("*allow-unresolved-vars*"), false)
                     .setDynamic();
 
-    private static Namespace currentNS() { return (Namespace) RT.CURRENT_NS.deref(); }
+    static Namespace currentNS() { return (Namespace) RT.CURRENT_NS.deref(); }
 
     private static Namespace namespaceFor(Symbol sym) { return namespaceFor(currentNS(), sym); }
 

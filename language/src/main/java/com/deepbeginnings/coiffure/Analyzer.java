@@ -7,6 +7,7 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
@@ -22,12 +23,38 @@ public final class Analyzer {
     private static final Symbol DOT = Symbol.intern(".");
     private static final Symbol _AMP_ = Symbol.intern("&");
 
+    private static final Set<Symbol> SPECIAL_FORMS = Arrays.stream(new Symbol[]{
+            DO, IF, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
+    }).collect(Collectors.toCollection(HashSet::new));
+
+    private static boolean isSpecialForm(final Object op) {
+        return op instanceof Symbol && SPECIAL_FORMS.contains((Symbol) op);
+    }
+
     public static final int MAX_POSITIONAL_ARITY = 20;
 
     // # Env
 
     private static abstract class Env {
         protected abstract Expr get(Symbol name);
+
+        protected abstract Optional<Var> macroVar(Symbol name);
+
+        final Optional<Var> macroVar(final Object op) {
+            Optional<Var> optVar = (op instanceof Var) ? Optional.of((Var) op)
+                    : (op instanceof Symbol) ? macroVar((Symbol) op)
+                    : Optional.empty();
+
+            optVar = optVar.filter(Var::isMacro);
+
+            optVar.ifPresent(var -> {
+                if (var.ns != Namespaces.currentNS() && !var.isPublic()) {
+                    throw new IllegalStateException("var: " + var + " is not public");
+                }
+            });
+
+            return optVar;
+        }
 
         protected ClosureEnv pushFn() { return new ClosureEnv(this); }
     }
@@ -41,6 +68,11 @@ public final class Analyzer {
     private static final class ToplevelEnv extends MethodsEnv {
         @Override
         protected Expr get(final Symbol name) { return null; }
+
+        @Override
+        protected Optional<Var> macroVar(final Symbol name) {
+            return Optional.ofNullable(Namespaces.lookupVar(name, false));
+        }
     }
 
     private static final class ClosureEnv extends MethodsEnv {
@@ -76,6 +108,11 @@ public final class Analyzer {
                 return null;
             }
         }
+
+        @Override
+        protected Optional<Var> macroVar(final Symbol name) {
+            return closings.containsKey(name) ? Optional.empty() : parent.macroVar(name);
+        }
     }
 
     private static abstract class FrameEnv extends Env {
@@ -95,6 +132,17 @@ public final class Analyzer {
         }
 
         protected FrameSlot getSlot(final Symbol name) { return (FrameSlot) namedSlots.valAt(name); }
+
+        @Override
+        protected Expr get(final Symbol name) {
+            final FrameSlot slot = getSlot(name);
+            return (slot != null) ? LocalUseNodeGen.create(slot) : getFrameRoot().parent.get(name);
+        }
+
+        @Override
+        protected Optional<Var> macroVar(final Symbol name) {
+            return namedSlots.containsKey(name) ? Optional.empty() : getFrameRoot().parent.macroVar(name);
+        }
     }
 
     private static final class MethodEnv extends FrameEnv {
@@ -130,12 +178,6 @@ public final class Analyzer {
         }
 
         @Override
-        protected Expr get(final Symbol name) {
-            final FrameSlot slot = getSlot(name);
-            return (slot != null) ? LocalUseNodeGen.create(slot) : parent.get(name);
-        }
-
-        @Override
         protected MethodEnv getFrameRoot() { return this; }
 
         private FrameSlot addSlot() { return frameDescriptor.addFrameSlot(localsCount++); }
@@ -152,12 +194,6 @@ public final class Analyzer {
             super(namedSlots.assoc(name, slot));
             this.root = root;
             this.slot = slot;
-        }
-
-        @Override
-        protected Expr get(final Symbol name) {
-            final FrameSlot slot = getSlot(name);
-            return (slot != null) ? LocalUseNodeGen.create(slot) : root.parent.get(name);
         }
 
         @Override
@@ -195,6 +231,10 @@ public final class Analyzer {
         } else if (form instanceof ISeq) {
             final ISeq coll = (ISeq) form;
 
+            final Object form_ = macroexpand1(locals, coll);
+            // NOTE: Use recursion so that runaway macroexpansion causes a stack overflow:
+            if (form_ != form) { return analyze(locals, ctx, form_); }
+
             if (Util.equiv(coll.first(), DO)) {
                 return analyzeDo(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), IF)) {
@@ -227,8 +267,26 @@ public final class Analyzer {
                 || form instanceof Long) {
             return new Const(form);
         } else {
-            throw new RuntimeException("TODO: analyze " + form);
+            throw new RuntimeException("TODO: analyze " + form + ": " + form.getClass());
         }
+    }
+
+    private static Object macroexpand1(final FrameEnv env, final ISeq form) {
+        final Object op = form.first();
+        if (!isSpecialForm(op)) { // NOTE: Prevents overriding special forms
+            final Optional<Var> optMacroVar = env.macroVar(op);
+            if (optMacroVar.isPresent()) {
+                final Var macroVar = optMacroVar.get();
+
+                final ISeq args = RT.cons(form, RT.cons(/* FIXME: */ null, form.next()));
+                return macroVar.applyTo(args);
+            } else if (op instanceof Symbol) {
+                // TODO: (.foo bar) expansion
+                return form;
+            }
+        }
+
+        return form;
     }
 
     private static Expr analyzeSymbol(final FrameEnv locals, final Symbol name) {
