@@ -4,6 +4,7 @@ import clojure.lang.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
 
 final class Parser {
@@ -39,6 +40,7 @@ final class Parser {
 
         case '(': return readList();
         case '[': return readVector();
+        case '{': return readMap();
 
         case '#': return readHashy();
 
@@ -94,7 +96,7 @@ final class Parser {
     private static boolean isSymbolPart(final int c) {
         return c != -1
                 && !Character.isWhitespace(c)
-                && "()[]#".indexOf(c) == -1;
+                && "()[]{}#".indexOf(c) == -1;
     }
 
     private IPersistentCollection readList() throws IOException {
@@ -135,6 +137,25 @@ final class Parser {
         }
 
         return coll.persistent();
+    }
+    
+    private IPersistentMap readMap() throws IOException {
+        final List<Object> kvs = new ArrayList<>();
+        
+        input.read(); // discard '{'
+        while (true) {
+            skipWhitespace();
+            
+            if (input.peek() == '}') {
+                input.read(); // discard '}'
+                break;
+            } else {
+                kvs.add(read()); // k
+                kvs.add(read()); // v
+            }
+        }
+        
+        return RT.map(kvs.toArray(new Object[0]));
     }
 
     private Object readAtom() throws IOException {

@@ -268,6 +268,8 @@ public final class Analyzer {
             }
         } else if (form instanceof IPersistentVector) {
             return analyzeVector(locals, (IPersistentVector) form);
+        } else if (form instanceof IPersistentMap) {
+            return analyzeMap(locals, (IPersistentMap) form);
         } else if (form == null
                 || form instanceof Boolean
                 || form instanceof Long) {
@@ -833,6 +835,34 @@ public final class Analyzer {
             return new Const(constVals.persistent());
         } else {
             return new VectorNode(elems);
+        }
+    }
+
+    // FIXME: Check key uniqueness and optimize with `RT.mapUniqueKeys` based on that:
+    private static Expr analyzeMap(final FrameEnv env, final IPersistentMap map) {
+        final Expr[] kvs = new Expr[2 * map.count()];
+        boolean constant = true;
+
+        ISeq entries = RT.seq(map);
+        for (int i = 0, j = 1; entries != null; entries = entries.next(), i += 2, j += 2) {
+            final IMapEntry kv = (IMapEntry) entries.first();
+            final Expr k = analyze(env, Context.NONTAIL, kv.key());
+            final Expr v = analyze(env, Context.NONTAIL, kv.val());
+            kvs[i] = k;
+            kvs[j] = v;
+            constant = constant && k instanceof Const && v instanceof Const;
+        }
+        
+        if (map instanceof IObj && ((IObj) map).meta() != null) {
+            throw new AssertionError("TODO");
+        } else if (constant) {
+            ITransientMap constMap = PersistentArrayMap.EMPTY.asTransient();
+            for (int i = 0, j = 1; j < kvs.length; i += 2, j += 2) {
+                constMap = constMap.assoc(((Const) kvs[i]).getValue(), ((Const) kvs[j]).getValue());
+            }
+            return new Const(constMap.persistent());
+        } else {
+            return new MapNode(kvs);
         }
     }
 }
