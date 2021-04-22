@@ -33,6 +33,10 @@ public final class Analyzer {
 
     public static final int MAX_POSITIONAL_ARITY = 20;
 
+    static final Symbol CLASS = Symbol.intern("Class");
+
+    static final Keyword TAG_KEY = Keyword.intern(null, "tag");
+
     // # Env
 
     private static abstract class Env {
@@ -281,12 +285,54 @@ public final class Analyzer {
                 final ISeq args = RT.cons(form, RT.cons(/* FIXME: */ null, form.next()));
                 return macroVar.applyTo(args);
             } else if (op instanceof Symbol) {
-                // TODO: (.foo bar) expansion
-                return form;
+                final Symbol opSym = (Symbol) op;
+                final String name = opSym.getName();
+
+                if (name.charAt(0) == '.') { // (.foo bar baz) -> (. bar foo baz)
+                    ISeq args = form.next();
+                    if (args != null) {
+                        Object receiver = args.first();
+                        args = args.next();
+
+                        final Symbol methodName = Symbol.intern(name.substring(1));
+                        if (Namespaces.maybeClass(receiver, false) != null) {
+                            receiver = ((IObj) RT.list(DO, receiver)).withMeta(RT.map(TAG_KEY, CLASS));
+                        }
+                        return preserveTag(form, RT.listStar(DOT, receiver, methodName, args));
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Malformed member expression, expecting (.member target ...)");
+                    }
+                } else if (opSym.getNamespace() != null && Namespaces.namespaceFor(opSym) == null) {
+                    // (Foo/bar baz) -> (. Foo bar baz)
+                    final Symbol receiver = Symbol.intern(opSym.getNamespace());
+
+                    if (Namespaces.maybeClass(receiver, false) != null) {
+                        final Symbol methodName = Symbol.intern(opSym.getName());
+                        return preserveTag(form, RT.listStar(DOT, receiver, methodName, form.next()));
+                    }
+                } else if (name.charAt(name.length() - 1) == '.') { // (Foo. bar) -> (new Foo bar)
+                    return RT.listStar(NEW, Symbol.intern(name.substring(0, name.length() - 1)), form.next());
+                }
             }
         }
 
         return form;
+    }
+
+    public static Object preserveTag(final ISeq src, final Object dst) {
+        final Symbol tag = tagOf(src);
+        if (tag != null && dst instanceof IObj) {
+            return ((IObj) dst).withMeta((IPersistentMap) RT.assoc(RT.meta(dst), TAG_KEY, tag));
+        }
+        return dst;
+    }
+
+    private static Symbol tagOf(final Object o) {
+        final Object tag = RT.get(RT.meta(o), TAG_KEY);
+        return (tag instanceof Symbol) ? (Symbol) tag
+                : (tag instanceof String) ? Symbol.intern(null, (String) tag)
+                : null;
     }
 
     private static Expr analyzeSymbol(final FrameEnv locals, final Symbol name) {

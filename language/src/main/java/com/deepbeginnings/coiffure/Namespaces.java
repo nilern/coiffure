@@ -27,7 +27,7 @@ final class Namespaces {
 
     static Namespace currentNS() { return (Namespace) RT.CURRENT_NS.deref(); }
 
-    private static Namespace namespaceFor(Symbol sym) { return namespaceFor(currentNS(), sym); }
+    static Namespace namespaceFor(Symbol sym) { return namespaceFor(currentNS(), sym); }
 
     private static Namespace namespaceFor(Namespace inns, Symbol sym) {
         //note, presumes non-nil sym.ns
