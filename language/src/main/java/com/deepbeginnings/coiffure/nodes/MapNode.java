@@ -2,6 +2,7 @@ package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.RT;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class MapNode extends Expr {
     @Children private Expr[] kvs;
@@ -14,6 +15,7 @@ public class MapNode extends Expr {
         this.kvs = kvs;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(final VirtualFrame frame) {
         final Object[] kvVals = new Object[kvs.length];

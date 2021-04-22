@@ -2,12 +2,14 @@ package com.deepbeginnings.coiffure.nodes;
 
 import clojure.lang.RT;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public final class VectorNode extends Expr {
     @Children private Expr[] elems;
     
     public VectorNode(final Expr[] elems) { this.elems = elems; }
 
+    @ExplodeLoop
     @Override
     public Object execute(final VirtualFrame frame) {
         final Object[] elemVals = new Object[elems.length];
