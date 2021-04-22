@@ -266,6 +266,8 @@ public final class Analyzer {
             } else {
                 throw new RuntimeException("TODO: analyze " + form);
             }
+        } else if (form instanceof IPersistentVector) {
+            return analyzeVector(locals, (IPersistentVector) form);
         } else if (form == null
                 || form instanceof Boolean
                 || form instanceof Long) {
@@ -809,5 +811,28 @@ public final class Analyzer {
         }
 
         throw new RuntimeException("Too few arguments to .");
+    }
+    
+    private static Expr analyzeVector(final FrameEnv env, final IPersistentVector vec) {
+        final Expr[] elems = new Expr[vec.count()];
+        boolean constant = true;
+        
+        for (int i = 0; i < vec.count(); ++i) {
+            final Expr elem = analyze(env, Context.NONTAIL, vec.nth(i));
+            elems[i] = elem;
+            constant = constant && elem instanceof Const;
+        }
+
+        if (vec instanceof IObj && ((IObj) vec).meta() != null) {
+            throw new AssertionError("TODO");
+        } else if (constant) {
+            ITransientCollection constVals = PersistentVector.EMPTY.asTransient();
+            for (final Expr elem : elems) {
+                constVals = constVals.conj(((Const) elem).getValue());
+            }
+            return new Const(constVals.persistent());
+        } else {
+            return new VectorNode(elems);
+        }
     }
 }
