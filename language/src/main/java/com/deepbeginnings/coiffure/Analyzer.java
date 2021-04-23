@@ -414,11 +414,11 @@ public final class Analyzer {
             throw new RuntimeException("Too few arguments to var");
         }
     }
-    
+
     private static Expr analyzeQuote(final ISeq args) {
         if (args != null) {
             final Object valForm = args.first();
-            
+
             if (args.next() == null) {
                 return new Const(valForm);
             } else {
@@ -559,7 +559,7 @@ public final class Analyzer {
 
         throw new RuntimeException("Too few arguments to catch");
     }
-    
+
     private static Expr analyzeLocking(final FrameEnv env, final ISeq args) {
         if (args != null) {
             final Expr lockExpr = analyze(env, Context.NONTAIL, args.first());
@@ -836,27 +836,30 @@ public final class Analyzer {
         if (args != null) {
             final Object nameForm = args.first();
 
+            Object init = null;
             if ((args = args.next()) != null) {
-                final Object init = args.first();
+                init = args.first();
 
-                if (args.next() == null) {
-                    if (nameForm instanceof Symbol) {
-                        final Symbol name = (Symbol) nameForm;
-
-                        final Var var = Namespaces.lookupVar(name, true);
-                        if (var != null) {
-                            return GlobalDef.create(var, analyze(locals, Context.NONTAIL, init));
-                        } else {
-                            throw new RuntimeException("Can't def a non-pre-existing qualified var");
-                        }
-                    } else {
-                        throw new RuntimeException("First argument to def must be a symbol");
-                    }
-                } else {
+                if (args.next() != null) {
                     throw new RuntimeException("Too many arguments to def");
                 }
+            }
+
+            if (nameForm instanceof Symbol) {
+                final Symbol name = (Symbol) nameForm;
+
+                final Var var = Namespaces.lookupVar(name, true);
+                if (var != null) {
+                    if (init != null) {
+                        return GlobalDef.create(var, analyze(locals, Context.NONTAIL, init));
+                    } else {
+                        return new Const(var);
+                    }
+                } else {
+                    throw new RuntimeException("Can't def a non-pre-existing qualified var");
+                }
             } else {
-                throw new AssertionError("TODO");
+                throw new RuntimeException("First argument to def must be a symbol");
             }
         } else {
             throw new RuntimeException("Too few arguments to def");
