@@ -64,7 +64,21 @@ final class Parser {
     }
 
     private void skipWhitespace() throws IOException {
-        while (Character.isWhitespace(input.peek())) { input.read(); }
+        while (true) {
+            final int c = input.peek();
+            if (Character.isWhitespace(c)) {
+                input.read();
+            } else if (c == ';') {
+                input.read(); // skip ';'
+                
+                int cc;
+                do {
+                    cc = input.read();
+                } while (cc != '\n' && cc != '\r' && cc != -1);
+            } else {
+                break;
+            }
+        }
     }
 
     private long readInt() throws IOException {
