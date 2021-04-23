@@ -5,14 +5,19 @@ import clojure.lang.*;
 import com.deepbeginnings.coiffure.nodes.*;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 
 import java.util.*;
+import java.util.stream.Stream;
 import java.util.stream.Collectors;
 
 public final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
     private static final Symbol IF = Symbol.intern("if");
     private static final Symbol THROW = Symbol.intern("throw");
+    private static final Symbol TRY = Symbol.intern("try");
+    private static final Symbol CATCH = Symbol.intern("catch");
+    private static final Symbol FINALLY = Symbol.intern("finally");
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol LOOP = Symbol.intern("loop");
     private static final Symbol RECUR = Symbol.intern("recur");
@@ -24,9 +29,9 @@ public final class Analyzer {
     private static final Symbol DOT = Symbol.intern(".");
     private static final Symbol _AMP_ = Symbol.intern("&");
 
-    private static final Set<Symbol> SPECIAL_FORMS = Arrays.stream(new Symbol[]{
-            DO, IF, THROW, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
-    }).collect(Collectors.toCollection(HashSet::new));
+    private static final Set<Symbol> SPECIAL_FORMS = Stream.of(
+            DO, IF, THROW, TRY, CATCH, FINALLY, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
+    ).collect(Collectors.toCollection(HashSet::new));
 
     private static boolean isSpecialForm(final Object op) {
         return op instanceof Symbol && SPECIAL_FORMS.contains((Symbol) op);
@@ -130,9 +135,11 @@ public final class Analyzer {
 
         abstract protected MethodEnv getFrameRoot();
 
-        private NestedEnv push(final Symbol name) {
+        private NestedEnv push(final Symbol name) { return push(name, FrameSlotKind.Illegal); }
+
+        private NestedEnv push(final Symbol name, final FrameSlotKind slotKind) {
             final MethodEnv root = getFrameRoot();
-            final FrameSlot slot = root.addSlot();
+            final FrameSlot slot = root.addSlot(slotKind);
             return new NestedEnv(namedSlots, root, name, slot);
         }
 
@@ -185,7 +192,9 @@ public final class Analyzer {
         @Override
         protected MethodEnv getFrameRoot() { return this; }
 
-        private FrameSlot addSlot() { return frameDescriptor.addFrameSlot(localsCount++); }
+        private FrameSlot addSlot(final FrameSlotKind slotKind) {
+            return frameDescriptor.addFrameSlot(localsCount++, slotKind);
+        }
 
         protected List<FrameSlot> paramSlots() { return paramSlots; }
     }
@@ -246,6 +255,8 @@ public final class Analyzer {
                 return analyzeIf(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), THROW)) {
                 return analyzeThrow(locals, coll.next());
+            } else if (Util.equiv(coll.first(), TRY)) {
+                return analyzeTry(locals, coll.next());
             } else if (Util.equiv(coll.first(), LETS)) {
                 return analyzeLet(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), FNS)) {
@@ -432,11 +443,11 @@ public final class Analyzer {
 
         throw new RuntimeException("Too few arguments to if");
     }
-    
-    private static Expr analyzeThrow(final FrameEnv locals, ISeq args) {
+
+    private static Expr analyzeThrow(final FrameEnv locals, final ISeq args) {
         if (args != null) {
             final Object exnForm = args.first();
-            
+
             if (args.next() == null) {
                 return new ThrowNode(analyze(locals, Context.NONTAIL, exnForm));
             } else {
@@ -445,6 +456,85 @@ public final class Analyzer {
         } else {
             throw new RuntimeException("Too few arguments to throw");
         }
+    }
+
+    private static Expr analyzeTry(final FrameEnv env, ISeq args) {
+        final List<Expr> body = new ArrayList<>();
+        for (; args != null; args = args.next()) {
+            final Object argForm = args.first();
+
+            if (argForm instanceof ISeq) {
+                final Object argOp = ((ISeq) argForm).first();
+                if (Util.equiv(argOp, CATCH) || Util.equiv(argOp, FINALLY)) { break; }
+            }
+
+            body.add(analyze(env, Context.NONTAIL, argForm));
+        }
+
+        final List<CatchNode> catches = new ArrayList<>();
+        for (; args != null; args = args.next()) {
+            final Object argForm = args.first();
+
+            if (argForm instanceof ISeq) {
+                final ISeq argSeq = (ISeq) argForm;
+                final Object argOp = argSeq.first();
+
+                if (Util.equiv(argOp, CATCH)) {
+                    catches.add(analyzeCatch(env, argSeq.next()));
+                    continue;
+                } else if (Util.equiv(argOp, FINALLY)) {
+                    break;
+                }
+            }
+
+            throw new RuntimeException("Only catch or finally clause can follow catch in try expression");
+        }
+
+        Expr finallyExpr = null;
+        if (args != null) {
+            final Object argForm = args.first();
+
+            if (args.next() == null) {
+                final ISeq argSeq = (ISeq) argForm;
+                finallyExpr = analyzeDo(env, Context.NONTAIL, argSeq.next());
+            } else {
+                throw new RuntimeException("finally clause must be last in try expression");
+            }
+        }
+        
+        return TryNode.create(Do.create(body.toArray(new Expr[0])), catches.toArray(new CatchNode[0]), finallyExpr);
+    }
+
+    private static CatchNode analyzeCatch(FrameEnv env, ISeq args) {
+        if (args != null) {
+            final Object classForm = args.first();
+            
+            if ((args = args.next()) != null) {
+                final Object paramForm = args.first();
+                
+                final Class<?> klass = Namespaces.maybeClass(classForm, false);
+                if (klass != null) {
+                    if (Throwable.class.isAssignableFrom(klass)) {
+                        @SuppressWarnings("unchecked") // checked with `isAssignableFrom` directly above
+                        final Class<? extends Throwable> catcheeClass = (Class<? extends Throwable>) klass;
+
+                        if (paramForm instanceof Symbol) {
+                            final NestedEnv env_ = env.push((Symbol) paramForm, FrameSlotKind.Object);
+                            env = env_;
+                            return new CatchNode(catcheeClass, env_.topSlot(), analyzeDo(env, Context.NONTAIL, args));
+                        } else {
+                            throw new IllegalArgumentException("Bad binding form, expected symbol, got: " + paramForm);
+                        }
+                    } else {
+                        throw new RuntimeException(klass + " is not a subclass of Throwable");
+                    }
+                } else {
+                    throw new RuntimeException("Unable to resolve classname: " + classForm);
+                }
+            }
+        }
+        
+        throw new RuntimeException("Too few arguments to catch");
     }
 
     private static Expr analyzeLet(FrameEnv locals, final Context ctx, final ISeq args) {
@@ -831,11 +921,11 @@ public final class Analyzer {
 
         throw new RuntimeException("Too few arguments to .");
     }
-    
+
     private static Expr analyzeVector(final FrameEnv env, final IPersistentVector vec) {
         final Expr[] elems = new Expr[vec.count()];
         boolean constant = true;
-        
+
         for (int i = 0; i < vec.count(); ++i) {
             final Expr elem = analyze(env, Context.NONTAIL, vec.nth(i));
             elems[i] = elem;
@@ -869,7 +959,7 @@ public final class Analyzer {
             kvs[j] = v;
             constant = constant && k instanceof Const && v instanceof Const;
         }
-        
+
         if (map instanceof IObj && ((IObj) map).meta() != null) {
             throw new AssertionError("TODO");
         } else if (constant) {
