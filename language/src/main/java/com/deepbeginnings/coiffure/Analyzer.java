@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 public final class Analyzer {
     private static final Symbol DO = Symbol.intern("do");
     private static final Symbol IF = Symbol.intern("if");
+    private static final Symbol THROW = Symbol.intern("throw");
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol LOOP = Symbol.intern("loop");
     private static final Symbol RECUR = Symbol.intern("recur");
@@ -24,7 +25,7 @@ public final class Analyzer {
     private static final Symbol _AMP_ = Symbol.intern("&");
 
     private static final Set<Symbol> SPECIAL_FORMS = Arrays.stream(new Symbol[]{
-            DO, IF, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
+            DO, IF, THROW, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
     }).collect(Collectors.toCollection(HashSet::new));
 
     private static boolean isSpecialForm(final Object op) {
@@ -243,6 +244,8 @@ public final class Analyzer {
                 return analyzeDo(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), IF)) {
                 return analyzeIf(locals, ctx, coll.next());
+            } else if (Util.equiv(coll.first(), THROW)) {
+                return analyzeThrow(locals, coll.next());
             } else if (Util.equiv(coll.first(), LETS)) {
                 return analyzeLet(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), FNS)) {
@@ -428,6 +431,20 @@ public final class Analyzer {
         }
 
         throw new RuntimeException("Too few arguments to if");
+    }
+    
+    private static Expr analyzeThrow(final FrameEnv locals, ISeq args) {
+        if (args != null) {
+            final Object exnForm = args.first();
+            
+            if (args.next() == null) {
+                return new ThrowNode(analyze(locals, Context.NONTAIL, exnForm));
+            } else {
+                throw new RuntimeException("Too many arguments to throw");
+            }
+        } else {
+            throw new RuntimeException("Too few arguments to throw");
+        }
     }
 
     private static Expr analyzeLet(FrameEnv locals, final Context ctx, final ISeq args) {
