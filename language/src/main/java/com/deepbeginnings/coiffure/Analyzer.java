@@ -18,6 +18,8 @@ public final class Analyzer {
     private static final Symbol TRY = Symbol.intern("try");
     private static final Symbol CATCH = Symbol.intern("catch");
     private static final Symbol FINALLY = Symbol.intern("finally");
+    // NOTE: It was more convenient to implement `locking` as a special form directly:
+    private static final Symbol LOCKING = Symbol.intern("locking");
     private static final Symbol LETS = Symbol.intern("let*");
     private static final Symbol LOOP = Symbol.intern("loop");
     private static final Symbol RECUR = Symbol.intern("recur");
@@ -30,7 +32,7 @@ public final class Analyzer {
     private static final Symbol _AMP_ = Symbol.intern("&");
 
     private static final Set<Symbol> SPECIAL_FORMS = Stream.of(
-            DO, IF, THROW, TRY, CATCH, FINALLY, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
+            DO, IF, THROW, TRY, CATCH, FINALLY, LOCKING, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
     ).collect(Collectors.toCollection(HashSet::new));
 
     private static boolean isSpecialForm(final Object op) {
@@ -257,6 +259,8 @@ public final class Analyzer {
                 return analyzeThrow(locals, coll.next());
             } else if (Util.equiv(coll.first(), TRY)) {
                 return analyzeTry(locals, coll.next());
+            } else if (Util.equiv(coll.first(), LOCKING)) {
+                return analyzeLocking(locals, coll.next());
             } else if (Util.equiv(coll.first(), LETS)) {
                 return analyzeLet(locals, ctx, coll.next());
             } else if (Util.equiv(coll.first(), FNS)) {
@@ -536,6 +540,16 @@ public final class Analyzer {
         }
 
         throw new RuntimeException("Too few arguments to catch");
+    }
+    
+    private static Expr analyzeLocking(final FrameEnv env, final ISeq args) {
+        if (args != null) {
+            final Expr lockExpr = analyze(env, Context.NONTAIL, args.first());
+            final Expr body = analyzeDo(env, Context.NONTAIL, args.next());
+            return new LockingNode(lockExpr, body);
+        } else {
+            throw new RuntimeException("Too few arguments to locking");
+        }
     }
 
     private static Expr analyzeLet(FrameEnv locals, final Context ctx, final ISeq args) {
