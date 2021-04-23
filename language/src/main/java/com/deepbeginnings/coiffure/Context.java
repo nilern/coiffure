@@ -1,8 +1,8 @@
 package com.deepbeginnings.coiffure;
 
 import clojure.lang.RT;
-
 import clojure.lang.Var;
+
 import com.oracle.truffle.api.TruffleLanguage;
 
 final class Context {

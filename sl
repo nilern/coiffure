@@ -125,7 +125,7 @@ if [[ "$GRAALVM_VERSION" != "" ]]; then
             PROGRAM_ARGS+=("$opt") ;;
       esac
     done
-    "$JAVACMD" "${JAVA_ARGS[@]}" -Dtruffle.class.path.append="$LANGUAGE_PATH" -cp "$LAUNCHER_PATH" "$MAIN_CLASS" "${PROGRAM_ARGS[@]}"
+    "$JAVACMD" "${JAVA_ARGS[@]}" -Dtruffle.class.path.append="$LANGUAGE_PATH" -cp "$LANGUAGE_PATH:$LAUNCHER_PATH" "$MAIN_CLASS" "${PROGRAM_ARGS[@]}"
 else
     echo "Warning: Could not find GraalVM on $JAVA_HOME. Running on JDK without support for compilation."
     echo

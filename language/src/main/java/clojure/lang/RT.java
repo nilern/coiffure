@@ -12,6 +12,9 @@
 
 package clojure.lang;
 
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+
 import java.net.MalformedURLException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.Callable;
@@ -255,6 +258,11 @@ final static IFn bootNamespace = new AFn(){
 	}
 };
 
+private static final String COIFFURE_LANG = "coiffure";
+private static final Context COIFFURE_CONTEXT = Context.newBuilder(COIFFURE_LANG)
+		.in(System.in).out(System.out)
+		.build();
+
 public static List<String> processCommandLine(String[] args){
 	List<String> arglist = Arrays.asList(args);
 	int split = arglist.indexOf("--");
@@ -334,12 +342,12 @@ static{
 	               });*/
 	v.setMeta(map(DOC_KEY, "Sequentially read and evaluate the set of forms contained in the file.",
 	              arglistskw, list(vector(namesym))));
-	/*HACK(nilern): Comment out: try {
+	try {
 		load("clojure/core");
 	}
 	catch(Exception e) {
 		throw Util.sneakyThrow(e);
-	}*/
+	}
 
 	CHECK_SPECS = RT.instrumentMacros;
 }
@@ -422,6 +430,7 @@ static void compile(String cljfile) throws IOException{
 	else
 		throw new FileNotFoundException("Could not locate Clojure resource on classpath: " + cljfile);
 }
+*/
 
 static public void load(String scriptbase) throws IOException, ClassNotFoundException{
 	load(scriptbase, true);
@@ -456,16 +465,17 @@ static public void load(String scriptbase, boolean failIfNotFound) throws IOExce
 		}
 	}
 	if(!loaded && cljURL != null) {
-		if(booleanCast(Compiler.COMPILE_FILES.deref()))
+		/* NOTE(nilern): Obviously we don't have AOT compilation: if(booleanCast(Compiler.COMPILE_FILES.deref()))
 			compile(scriptfile);
-		else
-			loadResourceScript(RT.class, scriptfile);
+		else */
+			// loadResourceScript(RT.class, cljURL);
+		final Source src = Source.newBuilder(COIFFURE_LANG, cljURL).build();
+		COIFFURE_CONTEXT.eval(src);
 	}
 	else if(!loaded && failIfNotFound)
 		throw new FileNotFoundException(String.format("Could not locate %s, %s or %s on classpath.%s", classfile, cljfile, cljcfile,
 			scriptbase.contains("_") ? " Please check that namespaces with dashes use underscores in the Clojure file name." : ""));
 }
-*/
 
 static public void init() {
 	doInit();

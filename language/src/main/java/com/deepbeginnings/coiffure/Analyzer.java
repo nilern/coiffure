@@ -286,7 +286,8 @@ public final class Analyzer {
             return analyzeMap(locals, (IPersistentMap) form);
         } else if (form == null
                 || form instanceof Boolean
-                || form instanceof Long) {
+                || form instanceof Long
+                || /*HACK:*/ form instanceof Namespace) {
             return new Const(form);
         } else {
             throw new RuntimeException("TODO: analyze " + form + ": " + form.getClass());
@@ -501,17 +502,17 @@ public final class Analyzer {
                 throw new RuntimeException("finally clause must be last in try expression");
             }
         }
-        
+
         return TryNode.create(Do.create(body.toArray(new Expr[0])), catches.toArray(new CatchNode[0]), finallyExpr);
     }
 
     private static CatchNode analyzeCatch(FrameEnv env, ISeq args) {
         if (args != null) {
             final Object classForm = args.first();
-            
+
             if ((args = args.next()) != null) {
                 final Object paramForm = args.first();
-                
+
                 final Class<?> klass = Namespaces.maybeClass(classForm, false);
                 if (klass != null) {
                     if (Throwable.class.isAssignableFrom(klass)) {
@@ -533,7 +534,7 @@ public final class Analyzer {
                 }
             }
         }
-        
+
         throw new RuntimeException("Too few arguments to catch");
     }
 

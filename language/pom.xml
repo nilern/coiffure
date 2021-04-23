@@ -237,6 +237,12 @@
         </plugin>
       </plugins>
     </pluginManagement>
+
+    <resources>
+      <resource>
+        <directory>src/main/clj</directory>
+      </resource>
+    </resources>
   </build>
   <dependencies>
     <dependency>
