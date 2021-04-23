@@ -17,6 +17,6 @@ public final class GlobalDef extends Expr {
     @Override
     public Object execute(final VirtualFrame frame) {
         var.bindRoot(init.execute(frame));
-        return null;
+        return var;
     }
 }
