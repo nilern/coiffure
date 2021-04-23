@@ -27,12 +27,14 @@ public final class Analyzer {
     private static final Symbol DEF = Symbol.intern("def");
     private static final Symbol SET_BANG_ = Symbol.intern("set!");
     private static final Symbol VAR = Symbol.intern("var");
+    private static final Symbol QUOTE = Symbol.intern("quote");
     private static final Symbol NEW = Symbol.intern("new");
     private static final Symbol DOT = Symbol.intern(".");
     private static final Symbol _AMP_ = Symbol.intern("&");
 
     private static final Set<Symbol> SPECIAL_FORMS = Stream.of(
-            DO, IF, THROW, TRY, CATCH, FINALLY, LOCKING, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, NEW, DOT, _AMP_
+            DO, IF, THROW, TRY, CATCH, FINALLY, LOCKING, LETS, LOOP, RECUR, FNS, DEF, SET_BANG_, VAR, QUOTE,
+            NEW, DOT, _AMP_
     ).collect(Collectors.toCollection(HashSet::new));
 
     private static boolean isSpecialForm(final Object op) {
@@ -269,6 +271,8 @@ public final class Analyzer {
                 return analyzeDef(locals, coll.next());
             } else if (Util.equiv(coll.first(), VAR)) {
                 return analyzeVar(coll.next());
+            } else if (Util.equiv(coll.first(), QUOTE)) {
+                return analyzeQuote(coll.next());
             } else if (Util.equiv(coll.first(), NEW)) {
                 return analyzeNew(locals, coll.next());
             } else if (Util.equiv(coll.first(), DOT)) {
@@ -408,6 +412,20 @@ public final class Analyzer {
             }
         } else {
             throw new RuntimeException("Too few arguments to var");
+        }
+    }
+    
+    private static Expr analyzeQuote(final ISeq args) {
+        if (args != null) {
+            final Object valForm = args.first();
+            
+            if (args.next() == null) {
+                return new Const(valForm);
+            } else {
+                throw new RuntimeException("Too many arguments to quote");
+            }
+        } else {
+            throw new RuntimeException("Too few arguments to quote");
         }
     }
 

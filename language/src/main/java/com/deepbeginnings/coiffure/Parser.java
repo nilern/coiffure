@@ -12,6 +12,7 @@ final class Parser {
 
     public static final Object EOF = new Object();
 
+    private static final Symbol QUOTE = Symbol.intern("quote");
     private static final Symbol VAR = Symbol.intern("var");
 
     public static Object read(final PeekableReader input) throws IOException { return new Parser(input).read(); }
@@ -41,6 +42,8 @@ final class Parser {
         case '(': return readList();
         case '[': return readVector();
         case '{': return readMap();
+        
+        case '\'': return readQuoted();
 
         case '#': return readHashy();
 
@@ -96,7 +99,7 @@ final class Parser {
     private static boolean isSymbolPart(final int c) {
         return c != -1
                 && !Character.isWhitespace(c)
-                && "()[]{}#".indexOf(c) == -1;
+                && "()[]{}'#".indexOf(c) == -1;
     }
 
     private IPersistentCollection readList() throws IOException {
@@ -158,6 +161,11 @@ final class Parser {
         return RT.map(kvs.toArray(new Object[0]));
     }
 
+    private Object readQuoted() throws IOException {
+        input.read(); // discard '\''
+        return RT.list(QUOTE, read());
+    }
+    
     private Object readAtom() throws IOException {
         final String name = readIdentifier();
 
