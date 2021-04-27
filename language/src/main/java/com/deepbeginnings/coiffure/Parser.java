@@ -42,7 +42,8 @@ final class Parser {
         case '(': return readList();
         case '[': return readVector();
         case '{': return readMap();
-        
+
+        case ':': return readKeyword();
         case '\'': return readQuoted();
 
         case '#': return readHashy();
@@ -114,6 +115,11 @@ final class Parser {
         return c != -1
                 && !Character.isWhitespace(c)
                 && "()[]{}'#".indexOf(c) == -1;
+    }
+
+    private Keyword readKeyword() throws IOException {
+        input.read(); // discard ':'
+        return Keyword.intern(Symbol.intern(readIdentifier()));
     }
 
     private IPersistentCollection readList() throws IOException {

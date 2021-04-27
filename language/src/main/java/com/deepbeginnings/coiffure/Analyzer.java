@@ -295,6 +295,7 @@ public final class Analyzer {
         } else if (form == null
                 || form instanceof Boolean
                 || form instanceof Long
+                || form instanceof Keyword
                 || /*HACK:*/ form instanceof Namespace) {
             return new Const(form);
         } else {
