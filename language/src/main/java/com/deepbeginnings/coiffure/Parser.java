@@ -14,6 +14,7 @@ final class Parser {
 
     private static final Symbol QUOTE = Symbol.intern("quote");
     private static final Symbol VAR = Symbol.intern("var");
+    private static final Keyword TAG_KEY = Keyword.intern(null, "tag");
 
     public static Object read(final PeekableReader input) throws IOException { return new Parser(input).read(); }
 
@@ -46,6 +47,8 @@ final class Parser {
         case '"': return readString();
         case ':': return readKeyword();
         case '\'': return readQuoted();
+
+        case '^': return readWithMeta();
 
         case '#': return readHashy();
 
@@ -231,6 +234,35 @@ final class Parser {
         case "true": return Boolean.TRUE;
         case "false": return Boolean.FALSE;
         default: return Symbol.intern(name);
+        }
+    }
+
+    private Object readWithMeta() throws IOException {
+        input.read(); // discard '^'
+        Object meta = read();
+        final Object v = read();
+
+        meta = (meta instanceof Symbol || meta instanceof String) ? RT.map(TAG_KEY, meta)
+                : (meta instanceof Keyword) ? RT.map(meta, true)
+                : meta;
+
+        if (meta instanceof IPersistentMap) {
+            if (v instanceof IReference) {
+                return ((IReference) v).resetMeta((IPersistentMap) meta);
+            } else if (v instanceof IObj) {
+                final IObj obj = (IObj) v;
+
+                Object vMeta = obj.meta();
+                for (ISeq kvs = RT.seq(meta); kvs != null; kvs = kvs.next()) {
+                    final IMapEntry kv = (IMapEntry) kvs.first();
+                    vMeta = RT.assoc(vMeta, kv.key(), kv.val());
+                }
+                return obj.withMeta((IPersistentMap) vMeta);
+            } else {
+                throw new RuntimeException("Cannot apply metadata to " + v);
+            }
+        } else {
+            throw new IllegalArgumentException("Metadata must be Symbol,Keyword,String or Map");
         }
     }
 }
