@@ -292,6 +292,8 @@ public final class Analyzer {
             return analyzeVector(locals, (IPersistentVector) form);
         } else if (form instanceof IPersistentMap) {
             return analyzeMap(locals, (IPersistentMap) form);
+        } else if (form instanceof String) {
+            return new Const(((String) form).intern());
         } else if (form == null
                 || form instanceof Boolean
                 || form instanceof Long

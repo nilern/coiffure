@@ -43,6 +43,7 @@ final class Parser {
         case '[': return readVector();
         case '{': return readMap();
 
+        case '"': return readString();
         case ':': return readKeyword();
         case '\'': return readQuoted();
 
@@ -71,7 +72,7 @@ final class Parser {
                 input.read();
             } else if (c == ';') {
                 input.read(); // skip ';'
-                
+
                 int cc;
                 do {
                     cc = input.read();
@@ -94,6 +95,42 @@ final class Parser {
             }
         }
         return n;
+    }
+
+    private String readString() throws IOException {
+        input.read(); // discard '"'
+        final StringBuilder cs = new StringBuilder();
+
+        while (true) {
+            int c = input.read();
+
+            switch (c) {
+            case -1: throw new RuntimeException("EOF while reading string");
+
+            case '"': return cs.toString();
+
+            case '\\':
+                c = input.read();
+                switch (c) {
+                case 'n': c = '\n';
+                    break;
+                case 't': c = '\t';
+                    break;
+                case 'r': c = '\r';
+                    break;
+                case 'b': c = '\b';
+                    break;
+                case 'f': c = '\f';
+                    break;
+
+                case '\\': case '"': break;
+
+                case 'u': default: throw new AssertionError("TODO");
+                }
+            }
+
+            cs.append((char) c);
+        }
     }
 
     private String readIdentifier() throws IOException {
@@ -161,14 +198,14 @@ final class Parser {
 
         return coll.persistent();
     }
-    
+
     private IPersistentMap readMap() throws IOException {
         final List<Object> kvs = new ArrayList<>();
-        
+
         input.read(); // discard '{'
         while (true) {
             skipWhitespace();
-            
+
             if (input.peek() == '}') {
                 input.read(); // discard '}'
                 break;
@@ -177,7 +214,7 @@ final class Parser {
                 kvs.add(read()); // v
             }
         }
-        
+
         return RT.map(kvs.toArray(new Object[0]));
     }
 
@@ -185,7 +222,7 @@ final class Parser {
         input.read(); // discard '\''
         return RT.list(QUOTE, read());
     }
-    
+
     private Object readAtom() throws IOException {
         final String name = readIdentifier();
 
