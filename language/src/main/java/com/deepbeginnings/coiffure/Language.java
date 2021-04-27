@@ -19,7 +19,7 @@ public final class Language extends TruffleLanguage<Context> {
     public static final String ID = "coiffure";
     public static final String MIME_TYPE = "application/clojure";
 
-    static Language getCurrentLanguage() { return getCurrentLanguage(Language.class); }
+    public static Language getCurrentLanguage() { return getCurrentLanguage(Language.class); }
 
     @Override
     protected Context createContext(final Env env) {
@@ -39,6 +39,10 @@ public final class Language extends TruffleLanguage<Context> {
             }
         }
 
+        return parse(source, args);
+    }
+
+    public CallTarget parse(final Source source, final Object... args) throws Exception {
         final PeekableReader reader = new PeekableReader(source.getReader());
 
         final List<Object> forms = new ArrayList<>();

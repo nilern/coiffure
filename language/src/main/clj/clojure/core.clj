@@ -12,7 +12,3 @@
 
 (def unquote)
 (def unquote-splicing)
-
-(def ans 42)
-
-ans

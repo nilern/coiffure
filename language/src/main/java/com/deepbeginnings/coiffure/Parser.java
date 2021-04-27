@@ -262,7 +262,7 @@ final class Parser {
                 throw new RuntimeException("Cannot apply metadata to " + v);
             }
         } else {
-            throw new IllegalArgumentException("Metadata must be Symbol,Keyword,String or Map");
+            throw new IllegalArgumentException("Metadata must be Symbol, Keyword, String or Map");
         }
     }
 }

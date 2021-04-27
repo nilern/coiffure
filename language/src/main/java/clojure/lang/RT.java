@@ -12,8 +12,9 @@
 
 package clojure.lang;
 
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
+import com.deepbeginnings.coiffure.Language;
+
+import com.oracle.truffle.api.source.Source;
 
 import java.net.MalformedURLException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -259,9 +260,6 @@ final static IFn bootNamespace = new AFn(){
 };
 
 private static final String COIFFURE_LANG = "coiffure";
-private static final Context COIFFURE_CONTEXT = Context.newBuilder(COIFFURE_LANG)
-		.in(System.in).out(System.out)
-		.build();
 
 public static List<String> processCommandLine(String[] args){
 	List<String> arglist = Arrays.asList(args);
@@ -343,6 +341,9 @@ static{
 	v.setMeta(map(DOC_KEY, "Sequentially read and evaluate the set of forms contained in the file.",
 	              arglistskw, list(vector(namesym))));
 	try {
+		// HACK(nilern): RT.init() does not work yet, so:
+		Var.pushThreadBindings(RT.mapUniqueKeys(RT.CURRENT_NS, RT.CURRENT_NS.deref()));
+
 		load("clojure/core");
 	}
 	catch(Exception e) {
@@ -376,6 +377,7 @@ public static void maybeLoadResourceScript(String name) throws IOException{
 public static void loadResourceScript(String name, boolean failIfNotFound) throws IOException{
 	loadResourceScript(RT.class, name, failIfNotFound);
 }
+*/
 
 public static void loadResourceScript(Class c, String name) throws IOException{
 	loadResourceScript(c, name, true);
@@ -383,11 +385,14 @@ public static void loadResourceScript(Class c, String name) throws IOException{
 
 public static void loadResourceScript(Class c, String name, boolean failIfNotFound) throws IOException{
 	int slash = name.lastIndexOf('/');
-	String file = slash >= 0 ? name.substring(slash + 1) : name;
+	// HACK(nilern): comment out: String file = slash >= 0 ? name.substring(slash + 1) : name;
 	InputStream ins = resourceAsStream(baseLoader(), name);
 	if(ins != null) {
 		try {
-			Compiler.load(new InputStreamReader(ins, UTF8), name, file);
+			final Source src = Source.newBuilder(COIFFURE_LANG, new InputStreamReader(ins, UTF8), name).build();
+			Language.getCurrentLanguage().parse(src).call();
+		} catch (final Exception exn) {
+			throw Util.sneakyThrow(exn);
 		}
 		finally {
 			ins.close();
@@ -397,7 +402,6 @@ public static void loadResourceScript(Class c, String name, boolean failIfNotFou
 		throw new FileNotFoundException("Could not locate Clojure resource on classpath: " + name);
 	}
 }
-*/
 
 static public long lastModified(URL url, String libfile) throws IOException{
 	URLConnection connection = url.openConnection();
@@ -468,9 +472,7 @@ static public void load(String scriptbase, boolean failIfNotFound) throws IOExce
 		/* NOTE(nilern): Obviously we don't have AOT compilation: if(booleanCast(Compiler.COMPILE_FILES.deref()))
 			compile(scriptfile);
 		else */
-			// loadResourceScript(RT.class, cljURL);
-		final Source src = Source.newBuilder(COIFFURE_LANG, cljURL).build();
-		COIFFURE_CONTEXT.eval(src);
+			loadResourceScript(RT.class, scriptfile);
 	}
 	else if(!loaded && failIfNotFound)
 		throw new FileNotFoundException(String.format("Could not locate %s, %s or %s on classpath.%s", classfile, cljfile, cljcfile,
